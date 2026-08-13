@@ -35,7 +35,13 @@ root; they forward into the workspaces.
 
 - Frontend: React 19, Vite, TypeScript (Tailwind CSS and React Router planned)
 - Backend: Node.js-style Express 5 on the Bun runtime, TypeScript
-- Database: PostgreSQL + Prisma ORM (planned; DATABASE_URL in server `.env`)
+- Database: PostgreSQL 18 (local, `helpdesk` db) + Prisma ORM 7
+- Prisma 7 notes: `prisma.config.ts` (not `.env`-based URLs in schema), new
+  `prisma-client` generator outputting to `server/src/generated/prisma` (gitignored),
+  driver adapter `@prisma/adapter-pg` required for `PrismaClient`. Run via
+  `bunx prisma ...` from `server/`. DATABASE_URL lives in `server/.env`.
+  Always pass `--no-skills` to `prisma init` — agent skills dirs are unwanted
+  (context7 is used for up-to-date Prisma docs instead).
 - Auth: database sessions (PostgreSQL, cookie-based) — planned
 - AI: free models via OpenRouter — planned
 - Email: SendGrid or Mailgun free tier — planned

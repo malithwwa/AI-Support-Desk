@@ -1,0 +1,10 @@
+// Helpdesk data model. See project-scope.md for feature requirements.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
