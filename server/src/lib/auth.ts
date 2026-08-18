@@ -4,9 +4,19 @@ import  prisma  from "../db.ts";
 
 export const auth = betterAuth({
   appName: "Helpdesk",
-  basePathL:"/api/auth",
   emailAndPassword: {
     enabled: true,
+    disableSignUp: true,
+  },
+  user: {
+    additionalFields: {
+      role: {
+        type: "string",
+        required: true,
+        defaultValue: "AGENT",
+        input: false,
+      },
+    },
   },
   database: prismaAdapter(prisma, {
     provider: "postgresql",
