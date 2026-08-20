@@ -29,11 +29,39 @@ root; they forward into the workspaces.
   `allowImportingTsExtensions` in `server/tsconfig.json`).
 - Server runs TypeScript directly — no build/compile step for dev.
 - Client dev server proxies `/api` → `http://localhost:3000` (`client/vite.config.ts`).
+- Client uses `@/*` path alias → `client/src/*` (configured in `client/tsconfig.json`,
+  `client/tsconfig.app.json`, and `client/vite.config.ts`).
 - Backend specs: `project-scope.md`, `tech-stack.md`, `implementation-plan.md`.
 
 ## Tech stack
 
-- Frontend: React 19, Vite, TypeScript (Tailwind CSS and React Router planned)
+- Frontend: React 19, Vite, TypeScript, Tailwind CSS v4 (via `@tailwindcss/vite`),
+  React Router, shadcn/ui
+- UI: shadcn/ui with **Base UI** primitives (`@base-ui/react`), Nova preset
+  (neutral theme, CSS variables). Config in `client/components.json`. Components
+  live in `client/src/components/ui`, copied in via `bunx shadcn@latest add <name>`
+  from `client/`. Helper `cn()` in `client/src/lib/utils.ts`. The `form` registry
+  item has no files for Base UI — wire react-hook-form + zod manually (project
+  already uses `react-hook-form`, `@hookform/resolvers`, `zod`).
+- Auth: Better Auth (`better-auth`) — email/password, database sessions in
+  PostgreSQL (via `prismaAdapter`), cookie-based. Server wires Better Auth's
+  handler at `/api/auth/*splat` via `toNodeHandler` (`server/src/index.ts`);
+  instance config in `server/src/lib/auth.ts`. **Sign-up is disabled**
+  (`disableSignUp: true`) — users must be seeded in the DB directly.
+- Server auth: `requireAuth` middleware (`server/src/middleware/require-auth.ts`)
+  reads the session from request headers (`auth.api.getSession` +
+  `fromNodeHeaders`), returns 401 on failure, and attaches `req.session` /
+  `req.user` (typed globally in `server/src/types/express.d.ts`). Route example:
+  `GET /api/me` in `server/src/index.ts`.
+- Client auth: `authClient` from `createAuthClient()` in
+  `client/src/lib/auth-client.ts` (exposes `signIn`, `signOut`, `useSession`).
+  Login page at `client/src/pages/Login.tsx`; session guarded by
+  `client/src/components/ProtectedRoute.tsx` (redirects to `/login`).
+  `TRUSTED_ORIGIN` env var (default `http://localhost:5173`) must match the
+  client origin.
+- User model has an additional `role` field (string, default `"AGENT"`,
+  not writable via API) — declared in `server/src/lib/auth.ts` under
+  `user.additionalFields`.
 - Backend: Node.js-style Express 5 on the Bun runtime, TypeScript
 - Database: PostgreSQL 18 (local, `helpdesk` db) + Prisma ORM 7
 - Prisma 7 notes: `prisma.config.ts` (not `.env`-based URLs in schema), new
@@ -42,7 +70,6 @@ root; they forward into the workspaces.
   `bunx prisma ...` from `server/`. DATABASE_URL lives in `server/.env`.
   Always pass `--no-skills` to `prisma init` — agent skills dirs are unwanted
   (context7 is used for up-to-date Prisma docs instead).
-- Auth: database sessions (PostgreSQL, cookie-based) — planned
 - AI: free models via OpenRouter — planned
 - Email: SendGrid or Mailgun free tier — planned
 
