@@ -12,7 +12,7 @@ function Navbar() {
 
   return (
     <nav className="flex items-center justify-between border-b border-zinc-200 px-6 py-3">
-      <span className="text-sm font-bold text-zinc-900">Helpdesk</span>
+      <span className="text-md font-bold text-zinc-900">Helpdesk</span>
       <div className="flex items-center gap-4">
         <span className="text-[13px] text-gray-500">{session?.user.name}</span>
         <button
