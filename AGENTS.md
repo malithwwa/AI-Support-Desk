@@ -32,6 +32,11 @@ root; they forward into the workspaces.
 - Client uses `@/*` path alias → `client/src/*` (configured in `client/tsconfig.json`,
   `client/tsconfig.app.json`, and `client/vite.config.ts`).
 - Backend specs: `project-scope.md`, `tech-stack.md`, `implementation-plan.md`.
+- Before starting the API (:3000) or client (:5173) to verify changes, check
+  whether it is already running (e.g. `Get-NetTCPConnection -LocalPort 3000`).
+  If running, do NOT start a duplicate on another port — test against the
+  existing instance (the dev servers run `bun --hot`, so file changes are
+  already live). Only start it yourself when nothing is listening.
 
 ## Tech stack
 
@@ -49,9 +54,11 @@ root; they forward into the workspaces.
   instance config in `server/src/lib/auth.ts`. **Sign-up is disabled**
   (`disableSignUp: true`) — users must be seeded in the DB directly. The seed
   script (`server/prisma/seed.ts`, run via `bun run seed` from `server/`)
-  creates an admin and an agent user from `ADMIN_EMAIL`/`ADMIN_PASSWORD` and
-  `AGENT_EMAIL`/`AGENT_PASSWORD` env vars in `server/.env` (hashes passwords
-  with `hashPassword` from `better-auth/crypto`, creates `credential` accounts).
+  creates the admin user from `ADMIN_EMAIL`/`ADMIN_PASSWORD` env vars in
+  `server/.env` (hashes passwords with `hashPassword` from
+  `better-auth/crypto`, creates a `credential` account) and **refuses
+  passwords shorter than 12 characters**. Other users (e.g. the agent) were
+  created by temporarily extending the script or direct DB inserts.
 - Server auth: `requireAuth` middleware (`server/src/middleware/require-auth.ts`)
   reads the session from request headers (`auth.api.getSession` +
   `fromNodeHeaders`), returns 401 on failure, and attaches `req.session` /

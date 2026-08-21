@@ -1,15 +1,28 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import router from "./routes/index.ts";
 import prisma from "./db.ts";
-import { auth } from "./lib/auth.ts";
+import { auth, trustedOrigin } from "./lib/auth.ts";
 import { toNodeHandler } from "better-auth/node";
 import { requireAuth } from "./middleware/require-auth.ts";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
 
-app.use(cors());
+app.use(helmet());
+app.use(cors({ origin: trustedOrigin, credentials: true }));
+
+const apiLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 300,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
+});
+
+app.use("/api", apiLimiter);
 
 //Registers a route handler in Express that listens to all HTTP methods (GET, POST, PUT, DELETE)
 //toNodeHandler is a bridge adapter. It converts Express req/res objects into Web Standard Request/Response objects, hands them to Better Auth, and maps Better Auth's response back into Express.
