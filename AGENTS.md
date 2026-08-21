@@ -47,7 +47,11 @@ root; they forward into the workspaces.
   PostgreSQL (via `prismaAdapter`), cookie-based. Server wires Better Auth's
   handler at `/api/auth/*splat` via `toNodeHandler` (`server/src/index.ts`);
   instance config in `server/src/lib/auth.ts`. **Sign-up is disabled**
-  (`disableSignUp: true`) — users must be seeded in the DB directly.
+  (`disableSignUp: true`) — users must be seeded in the DB directly. The seed
+  script (`server/prisma/seed.ts`, run via `bun run seed` from `server/`)
+  creates an admin and an agent user from `ADMIN_EMAIL`/`ADMIN_PASSWORD` and
+  `AGENT_EMAIL`/`AGENT_PASSWORD` env vars in `server/.env` (hashes passwords
+  with `hashPassword` from `better-auth/crypto`, creates `credential` accounts).
 - Server auth: `requireAuth` middleware (`server/src/middleware/require-auth.ts`)
   reads the session from request headers (`auth.api.getSession` +
   `fromNodeHeaders`), returns 401 on failure, and attaches `req.session` /
@@ -55,10 +59,18 @@ root; they forward into the workspaces.
   `GET /api/me` in `server/src/index.ts`.
 - Client auth: `authClient` from `createAuthClient()` in
   `client/src/lib/auth-client.ts` (exposes `signIn`, `signOut`, `useSession`).
+  Uses the `inferAdditionalFields` plugin (from `better-auth/client/plugins`)
+  with a manual `user.role` schema so `session.user.role` is typed on the
+  client (required since server + client are separate workspaces).
   Login page at `client/src/pages/Login.tsx`; session guarded by
   `client/src/components/ProtectedRoute.tsx` (redirects to `/login`).
   `TRUSTED_ORIGIN` env var (default `http://localhost:5173`) must match the
   client origin.
+- Role-based routing: `client/src/components/AdminRoute.tsx` guards admin-only
+  routes (checks `session.user.role === 'ADMIN'`, redirects non-admins to `/`).
+  Example: `GET /users` page (`client/src/pages/Users.tsx`) is nested under
+  `AdminRoute` in `client/src/App.tsx`; nav link shown only to admins in
+  `client/src/components/Navbar.tsx`.
 - User model has an additional `role` field (string, default `"AGENT"`,
   not writable via API) — declared in `server/src/lib/auth.ts` under
   `user.additionalFields`.
