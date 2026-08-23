@@ -8,6 +8,8 @@ import { auth, trustedOrigin } from "./lib/auth.ts";
 import { toNodeHandler } from "better-auth/node";
 import { requireAuth } from "./middleware/require-auth.ts";
 
+if (!process.env.BETTER_AUTH_SECRET){ throw new Error("BETETR_AUTH_SECRET enironment variable is not set")}
+
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
 
@@ -42,7 +44,8 @@ app.get("/api/health", async (_req, res) => {
 });
 
 app.get("/api/me", apiLimiter, requireAuth, (req,res)=> {
-  res.json({user: req.user, session: req.session})
+  const { id, name, email, role} = req.user
+  res.json({user: {id, name, email, role}})
 })
 
 app.use("/api", router);
