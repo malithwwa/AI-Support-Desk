@@ -4,17 +4,6 @@ import { hashPassword } from "better-auth/crypto";
 import prisma from "../src/db.ts";
 import { UserRole } from "../src/generated/prisma/client.ts";
 
-const MIN_PASSWORD_LENGTH = 12;
-
-function assertStrongPassword(password: string) {
-  if (password.length < MIN_PASSWORD_LENGTH) {
-    console.error(
-      `Refusing to seed: password must be at least ${MIN_PASSWORD_LENGTH} characters (got ${password.length}).`,
-    );
-    process.exit(1);
-  }
-}
-
 async function main() {
   const email = process.env.ADMIN_EMAIL;
   const password = process.env.ADMIN_PASSWORD;
@@ -23,8 +12,6 @@ async function main() {
     console.error("ADMIN_EMAIL and ADMIN_PASSWORD must be set in server/.env");
     process.exit(1);
   }
-
-  assertStrongPassword(password);
 
   const existing = await prisma.user.findUnique({ where: { email } });
 
@@ -61,4 +48,7 @@ main()
   .catch((e) => {
     console.error("Seed failed:", e);
     process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
   });

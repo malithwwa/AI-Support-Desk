@@ -22,11 +22,9 @@ const apiLimiter = rateLimit({
   validate: { xForwardedForHeader: false },
 });
 
-app.use("/api", apiLimiter);
-
-//Registers a route handler in Express that listens to all HTTP methods (GET, POST, PUT, DELETE)
-//toNodeHandler is a bridge adapter. It converts Express req/res objects into Web Standard Request/Response objects, hands them to Better Auth, and maps Better Auth's response back into Express.
-app.all("/api/auth/*splat", toNodeHandler(auth)); 
+// Registers a route handler in Express that listens to all HTTP methods (GET, POST, PUT, DELETE)
+// toNodeHandler is a bridge adapter. It converts Express req/res objects into Web Standard Request/Response objects, hands them to Better Auth, and maps Better Auth's response back into Express.
+app.all("/api/auth/*splat", apiLimiter, toNodeHandler(auth));
 
 app.use(express.json());
 
@@ -43,7 +41,7 @@ app.get("/api/health", async (_req, res) => {
   }
 });
 
-app.get("/api/me", requireAuth, (req,res)=> {
+app.get("/api/me", apiLimiter, requireAuth, (req,res)=> {
   res.json({user: req.user, session: req.session})
 })
 

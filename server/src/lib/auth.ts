@@ -11,11 +11,6 @@ export const auth = betterAuth({
     enabled: true,
     disableSignUp: true,
   },
-  rateLimit: {
-    enabled: true,
-    window: 10,
-    max: 100,
-  },
   user: {
     additionalFields: {
       role: {
