@@ -5,14 +5,16 @@
   "type": "module",
   "workspaces": [
     "server",
-    "client"
+    "client",
+    "e2e"
   ],
   "scripts": {
     "dev": "concurrently -n server,client -c blue,green \"bun run dev:server\" \"bun run dev:client\"",
     "dev:server": "bun run --cwd server dev",
     "dev:client": "bun run --cwd client dev",
     "build": "bun run --cwd server build && bun run --cwd client build",
-    "typecheck": "bun run --cwd server typecheck && bun run --cwd client typecheck"
+    "test:e2e": "bun run --cwd e2e test",
+    "typecheck": "bun run --cwd server typecheck && bun run --cwd client typecheck && bun run --cwd e2e typecheck"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

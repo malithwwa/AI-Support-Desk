@@ -8,6 +8,7 @@ client/dist/
 
 # Environment
 .env
+.env.test
 .env.local
 .env.*.local
 
@@ -20,3 +21,9 @@ npm-debug.log*
 .idea/
 .vscode/
 *.swp
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/

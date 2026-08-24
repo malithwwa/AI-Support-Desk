@@ -16,12 +16,15 @@ const port = Number(process.env.PORT ?? 3000);
 app.use(helmet());
 app.use(cors({ origin: trustedOrigin, credentials: true }));
 
+const isProduction = process.env.NODE_ENV === "production";
+
 const apiLimiter = rateLimit({
   windowMs: 60_000,
   limit: 300,
   standardHeaders: "draft-8",
   legacyHeaders: false,
   validate: { xForwardedForHeader: false },
+  skip: () => !isProduction,
 });
 
 // Registers a route handler in Express that listens to all HTTP methods (GET, POST, PUT, DELETE)
