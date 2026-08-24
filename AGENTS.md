@@ -9,16 +9,18 @@ tickets.
 ```
 server/   Express 5 + TypeScript API (runs directly on Bun, no compile step)
 client/   React 19 + Vite + TypeScript SPA
+e2e/      Playwright end-to-end tests (own workspace)
 ```
 
-Monorepo uses Bun workspaces (`server`, `client`). Run commands from the repo
-root; they forward into the workspaces.
+Monorepo uses Bun workspaces (`server`, `client`, `e2e`). Run commands from the
+repo root; they forward into the workspaces.
 
 ## Commands (repo root)
 
 - `bun run dev` — start API (:3000) and client (:5173) together via `concurrently`
 - `bun run dev:server` / `bun run dev:client` — start one side only
-- `bun run typecheck` — `tsc --noEmit` in server, `tsc -b` in client
+- `bun run test:e2e` — Playwright suite; starts its own servers + test DB (see Testing below)
+- `bun run typecheck` — `tsc --noEmit` in server, `tsc -b` in client, `tsc --noEmit` in e2e
 - `bun run build` — build both workspaces
 - `bun install` — install/hoist dependencies across workspaces
 
@@ -28,7 +30,8 @@ root; they forward into the workspaces.
 - Server imports use explicit `.ts` extensions (required by Bun; enabled via
   `allowImportingTsExtensions` in `server/tsconfig.json`).
 - Server runs TypeScript directly — no build/compile step for dev.
-- Client dev server proxies `/api` → `http://localhost:3000` (`client/vite.config.ts`).
+- Client dev server proxies `/api` → `http://localhost:3000` by default;
+  override with `API_PROXY_TARGET` env var (`client/vite.config.ts`).
 - Client uses `@/*` path alias → `client/src/*` (configured in `client/tsconfig.json`,
   `client/tsconfig.app.json`, and `client/vite.config.ts`).
 - Backend specs: `project-scope.md`, `tech-stack.md`, `implementation-plan.md`.
@@ -37,6 +40,40 @@ root; they forward into the workspaces.
   If running, do NOT start a duplicate on another port — test against the
   existing instance (the dev servers run `bun --hot`, so file changes are
   already live). Only start it yourself when nothing is listening.
+
+## Testing (Playwright E2E)
+
+- Specs live in `e2e/tests/` (empty so far); run from repo root via
+  `bun run test:e2e` or from `e2e/` (`bunx playwright test`, `--ui`,
+  `--headed`). Chromium is the only installed browser project (add
+  Firefox/WebKit projects + `playwright install <browser>` as needed).
+- Tests never touch dev ports: the config spins up its own API on :3100
+  (`bun run start`) and Vite client on :5174 (`--strictPort`), so tests can run
+  while `bun run dev` is active. Ports overridable via `E2E_API_PORT` /
+  `E2E_CLIENT_PORT`; `baseURL` = :5174. The API webServer gets
+  `NODE_ENV=test`, `TRUSTED_ORIGIN`/`BETTER_AUTH_URL` overridden to the :5174
+  origin, and `DATABASE_URL` pointing at the test DB.
+- Separate DB: tests use PostgreSQL database **`helpdesk_test`**, configured in
+  `server/.env.test` (gitignored) via `DATABASE_URL`. Resolution order
+  (`e2e/lib/test-db.ts`): `TEST_DATABASE_URL` env > `.env.test` > derived from
+  `server/.env` by swapping the db name (name overridable via
+  `E2E_TEST_DB_NAME`). Both global-setup and the API webServer resolve through
+  this helper, so they always agree.
+- `globalSetup` (`e2e/global-setup.ts`) runs every test session: creates
+  `helpdesk_test` if missing, then `bunx prisma migrate reset --force`
+  (destructive full reset; Prisma 7 requires
+  `PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=Yes` for AI-triggered resets),
+  then an explicit `bun prisma/seed.ts`. Note: Prisma 7 removed `--skip-seed`
+  and its reset does not auto-seed. Setup fails fast if `.env.test` is
+  missing/lacks `DATABASE_URL`, and refuses to run if that URL targets the dev
+  database (reset is destructive).
+- Rate limiting (`apiLimiter` in `server/src/index.ts`) is production-only:
+  `skip: () => !isProduction` where `isProduction = NODE_ENV === "production"`.
+  The server `start` script sets `NODE_ENV=production` (Bun applies `VAR=value`
+  prefixes in package.json scripts, even on Windows); e2e pins `NODE_ENV=test`
+  to keep it off during test runs.
+- Gotcha: express-rate-limit v8 draft-8 headers are `RateLimit` +
+  `RateLimit-Policy` — there is no `RateLimit-Limit` header.
 
 ## Tech stack
 
@@ -83,6 +120,8 @@ root; they forward into the workspaces.
   `user.additionalFields`.
 - Backend: Node.js-style Express 5 on the Bun runtime, TypeScript
 - Database: PostgreSQL 18 (local, `helpdesk` db) + Prisma ORM 7
+- E2E testing: Playwright (`@playwright/test`) in the `e2e` workspace — see
+  "Testing (Playwright E2E)" above for DB/server conventions
 - Prisma 7 notes: `prisma.config.ts` (not `.env`-based URLs in schema), new
   `prisma-client` generator outputting to `server/src/generated/prisma` (gitignored),
   driver adapter `@prisma/adapter-pg` required for `PrismaClient`. Run via
