@@ -43,6 +43,12 @@ repo root; they forward into the workspaces.
 
 ## Testing (Playwright E2E)
 
+- **Delegate test writing to the `e2e-tester` subagent** (defined in
+  `.opencode/agent/e2e-tester.md`): when asked to create, extend, or fix e2e
+  tests, launch it via the Task tool (`subagent_type: "e2e-tester"`) instead
+  of writing specs yourself. It may edit only `e2e/**` and run only
+  playwright/test:e2e commands; it knows the environment facts below and
+  reports suite status + suspected product bugs back.
 - Specs live in `e2e/tests/` (empty so far); run from repo root via
   `bun run test:e2e` or from `e2e/` (`bunx playwright test`, `--ui`,
   `--headed`). Chromium is the only installed browser project (add
