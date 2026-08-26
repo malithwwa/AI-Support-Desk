@@ -49,12 +49,16 @@ repo root; they forward into the workspaces.
   of writing specs yourself. It may edit only `e2e/**` and run only
   playwright/test:e2e commands; it knows the environment facts below and
   reports suite status + suspected product bugs back.
-- Specs live in `e2e/tests/` (empty so far); run from repo root via
+- Specs live in `e2e/tests/` (`api-auth.spec.ts`, `auth-ui.spec.ts`, helpers in
+  `e2e/lib/`); run from repo root via
   `bun run test:e2e` or from `e2e/` (`bunx playwright test`, `--ui`,
   `--headed`). Chromium is the only installed browser project (add
   Firefox/WebKit projects + `playwright install <browser>` as needed).
 - Tests never touch dev ports: the config spins up its own API on :3100
-  (`bun run start`) and Vite client on :5174 (`--strictPort`), so tests can run
+  (`bun src/index.ts` — NOT `bun run start`, whose script-level
+  `NODE_ENV=production` prefix would override the injected env and silently
+  re-enable rate limiting mid-suite → 429s) and Vite client on :5174
+  (`--strictPort`), so tests can run
   while `bun run dev` is active. Ports overridable via `E2E_API_PORT` /
   `E2E_CLIENT_PORT`; `baseURL` = :5174. The API webServer gets
   `NODE_ENV=test`, `TRUSTED_ORIGIN`/`BETTER_AUTH_URL` overridden to the :5174
@@ -73,6 +77,16 @@ repo root; they forward into the workspaces.
   and its reset does not auto-seed. Setup fails fast if `.env.test` is
   missing/lacks `DATABASE_URL`, and refuses to run if that URL targets the dev
   database (reset is destructive).
+- Seed/better-auth gotcha: better-auth >=1.7 sign-in requires the credential
+  account's `issuer` to equal `local:<providerId>` (e.g. `local:credential`);
+  accounts without it fail sign-in with a misleading "User not found" warn +
+  INVALID_EMAIL_OR_PASSWORD. `server/prisma/seed.ts` sets it explicitly.
+  Debugging tip: monkey-patch the shared Prisma instance's finders before
+  importing auth.ts to log exactly what better-auth queries.
+- Login form DOM: server-side auth errors render as a direct child
+  `<p class="text-destructive">` of `<form>`; client-side zod errors render as
+  nested `<p class="text-destructive">` inside field wrappers. Use descendant
+  selector `form p.text-destructive` to match either.
 - Rate limiting (`apiLimiter` in `server/src/index.ts`) is production-only:
   `skip: () => !isProduction` where `isProduction = NODE_ENV === "production"`.
   The server `start` script sets `NODE_ENV=production` (Bun applies `VAR=value`

@@ -36,6 +36,9 @@ async function main() {
           providerId: "credential",
           accountId: userId,
           password: passwordHash,
+          // Better Auth >=1.7 requires this on credential accounts;
+          // sign-in rejects seeded users without it ("local:<providerId>").
+          issuer: "local:credential",
         },
       },
     },

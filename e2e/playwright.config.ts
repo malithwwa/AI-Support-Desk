@@ -33,7 +33,10 @@ export default defineConfig({
   webServer: [
     {
       name: "api",
-      command: "bun run start",
+      // Run the entry directly: `bun run start` prefixes NODE_ENV=production
+      // in its package.json script, which would override the NODE_ENV=test
+      // below and turn rate limiting on mid-suite (429s).
+      command: "bun src/index.ts",
       cwd: serverDir,
       url: `${apiOrigin}/api/health`,
       reuseExistingServer: !process.env.CI,
