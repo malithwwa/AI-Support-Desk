@@ -119,3 +119,31 @@ test.describe("POST /api/auth/sign-out", () => {
     expect(meAfter.status()).toBe(401);
   });
 });
+
+test.describe("GET /api/users", () => {
+  test("returns 401 without a session", async ({ request }) => {
+    const res = await request.get("/api/users");
+    expect(res.status()).toBe(401);
+  });
+
+  test("returns the user list for an admin", async ({ request }) => {
+    const signIn = await request.post("/api/auth/sign-in/email", {
+      data: { email: adminEmail, password: adminPassword },
+    });
+    expect(signIn.status()).toBe(200);
+
+    const res = await request.get("/api/users");
+    expect(res.status()).toBe(200);
+
+    const body = await res.json();
+    expect(Array.isArray(body.users)).toBe(true);
+    expect(body.users.length).toBeGreaterThanOrEqual(1);
+
+    const admin = body.users.find(
+      (u: { email: string }) => u.email === adminEmail.toLowerCase(),
+    );
+    expect(admin).toBeTruthy();
+    expect(admin.name).toBe("Admin");
+    expect(admin.role).toBe("ADMIN");
+  });
+});
