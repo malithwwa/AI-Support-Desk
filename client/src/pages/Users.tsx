@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import axios from 'axios'
 import {
   Table,
   TableBody,
@@ -17,28 +18,39 @@ interface User {
   createdAt: string
 }
 
-function Users() {
-  const [users, setUsers] = useState<User[]>([])
-  const [error, setError] = useState('')
+interface UsersResponse {
+  users: User[]
+}
 
-  useEffect(() => {
-    async function fetchUsers() {
-      const res = await fetch('/api/users', { credentials: 'include' })
-      if (!res.ok) {
-        setError('Failed to load users')
-        return
-      }
-      const data = await res.json()
-      setUsers(data.users)
-    }
-    fetchUsers()
-  }, [])
+async function fetchUsers() {
+  const { data } = await axios.get<UsersResponse>('/api/users', {
+    withCredentials: true,
+  })
+  return data.users
+}
+
+function Users() {
+  const { data: users = [], isLoading, error } = useQuery({
+    queryKey: ['users'],
+    queryFn: fetchUsers,
+  })
+
+  if (isLoading) {
+    return (
+      <main className="flex flex-col items-center p-8 text-left">
+        <div className="w-full max-w-7xl">
+          <h1 className="mb-1 text-2xl font-semibold text-zinc-900">Users</h1>
+          <p className="text-[13px] text-zinc-600">Loading…</p>
+        </div>
+      </main>
+    )
+  }
 
   if (error) {
     return (
       <main className="p-8 text-left">
         <h1 className="mb-2 text-2xl font-semibold text-zinc-900">Users</h1>
-        <p className="text-[13px] text-destructive">{error}</p>
+        <p className="text-[13px] text-destructive">Failed to load users</p>
       </main>
     )
   }
