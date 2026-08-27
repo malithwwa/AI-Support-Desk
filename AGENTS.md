@@ -98,7 +98,10 @@ repo root; they forward into the workspaces.
 ## Tech stack
 
 - Frontend: React 19, Vite, TypeScript, Tailwind CSS v4 (via `@tailwindcss/vite`),
-  React Router, shadcn/ui
+  React Router, shadcn/ui, **Axios** for HTTP requests, **TanStack Query**
+  (`@tanstack/react-query`) for server state. Use `axios.get<ResponseType>()`
+  with explicit generic types; avoid `as` casts. Use `useQuery` for data
+  fetching — never raw `useEffect` + `useState` for server data.
 - UI: shadcn/ui with **Base UI** primitives (`@base-ui/react`), Nova preset
   (neutral theme, CSS variables). Config in `client/components.json`. Components
   live in `client/src/components/ui`, copied in via `bunx shadcn@latest add <name>`
