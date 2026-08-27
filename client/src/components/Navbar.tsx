@@ -12,7 +12,9 @@ function Navbar() {
 
   return (
     <nav className="flex items-center justify-between border-b border-zinc-200 px-6 py-3">
-      <span className="text-md font-bold text-zinc-900">Helpdesk</span>
+      <Link to="/" className="text-md font-bold text-zinc-900">
+        Helpdesk
+      </Link>
       <div className="flex items-center gap-4">
         {session?.user.role === 'ADMIN' && (
           <Link

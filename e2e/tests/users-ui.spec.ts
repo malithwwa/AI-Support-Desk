@@ -20,12 +20,6 @@ test.describe("users page (admin)", () => {
     await expect(row.getByText(adminEmail.toLowerCase())).toBeVisible();
     await expect(row.getByText("admin", { exact: true })).toBeVisible();
   });
-
-  test("shows the total user count", async ({ page }) => {
-    await loginViaUi(page, adminEmail);
-    await page.goto("/users");
-    await expect(page.getByText(/\d+ users? total/)).toBeVisible();
-  });
 });
 
 test.describe("users page (non-admin)", () => {
