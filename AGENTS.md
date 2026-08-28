@@ -20,6 +20,7 @@ repo root; they forward into the workspaces.
 - `bun run dev` — start API (:3000) and client (:5173) together via `concurrently`
 - `bun run dev:server` / `bun run dev:client` — start one side only
 - `bun run test:e2e` — Playwright suite; starts its own servers + test DB (see Testing below)
+- `bun run test` — client component tests via Vitest + React Testing Library (jsdom, `client/src/**/*.test.tsx`)
 - `bun run typecheck` — `tsc --noEmit` in server, `tsc -b` in client, `tsc --noEmit` in e2e
 - `bun run build` — build both workspaces
 - `bun install` — install/hoist dependencies across workspaces
