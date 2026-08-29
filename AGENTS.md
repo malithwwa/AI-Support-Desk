@@ -96,6 +96,36 @@ repo root; they forward into the workspaces.
 - Gotcha: express-rate-limit v8 draft-8 headers are `RateLimit` +
   `RateLimit-Policy` — there is no `RateLimit-Limit` header.
 
+## Component Testing (Vitest + React Testing Library)
+
+- **What it covers**: client component/unit tests (jsdom) — distinct from Playwright
+  E2E above. Focused on rendering and behavior of isolated components (e.g. a page
+  given mocked data), NOT full-stack flows. Live at `client/src/**/*.test.tsx`.
+- **Run**: from `client/`, `bun run test` (= `vitest run`) or `bun run test:component`;
+  `bun run test:watch` for watch mode. From repo root, `bun run test` forwards into
+  the client workspace. No servers or DB needed — test-only env.
+- **Config**: test options live in `client/vite.config.ts` (must import
+  `defineConfig` from `vitest/config` for the `test` key to typecheck):
+  `environment: 'jsdom'`, `globals: true`, `setupFiles: './src/test/setup.ts'`,
+  `css: false`. Setup file (`client/src/test/setup.ts`) imports
+  `@testing-library/jest-dom/vitest` for matchers like `toBeInTheDocument`.
+- **TypeScript**: `vitest/globals` is added to `types` in `client/tsconfig.app.json`
+  so `describe`/`it`/`expect` and DOM matchers typecheck.
+- **Conventions** for writing component tests:
+  - Co-locate specs next to the component: `client/src/pages/Users.test.tsx`.
+  - Render React-Query consumers with the shared helper
+    `renderWithQuery` from `client/src/test/render-with-query.tsx` (wraps the
+    element in a fresh `QueryClientProvider` with `retry: false`) — never a bare
+    `render` for components that call `useQuery`.
+  - Mock HTTP: `vi.mock('axios')` + `vi.mocked(axios).get.mockResolvedValue(...)`
+    (or `.mockRejectedValue(...)`); assert the call with `toHaveBeenCalledWith`.
+  - Reset mocks per test: `beforeEach(() => { vi.resetAllMocks() })` (clears all
+    mocked modules' call history/implementations; then re-stub what each test needs).
+  - Prefer `@testing-library/user-event` for interactions and async queries
+    (`findByRole`/`findByText`) over `getBy*` + `act`.
+  - Use `toHaveBeenCalledWith` to pin exact request shape (URL + options) and catch
+    internal API drift.
+
 ## Tech stack
 
 - Frontend: React 19, Vite, TypeScript, Tailwind CSS v4 (via `@tailwindcss/vite`),
