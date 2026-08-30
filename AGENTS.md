@@ -50,8 +50,8 @@ repo root; they forward into the workspaces.
   of writing specs yourself. It may edit only `e2e/**` and run only
   playwright/test:e2e commands; it knows the environment facts below and
   reports suite status + suspected product bugs back.
-- Specs live in `e2e/tests/` (`api-auth.spec.ts`, `auth-ui.spec.ts`, helpers in
-  `e2e/lib/`); run from repo root via
+- Specs live in `e2e/tests/` (`api-auth.spec.ts`, `auth-ui.spec.ts`, `users-ui.spec.ts`,
+  helpers in `e2e/lib/`); run from repo root via
   `bun run test:e2e` or from `e2e/` (`bunx playwright test`, `--ui`,
   `--headed`). Chromium is the only installed browser project (add
   Firefox/WebKit projects + `playwright install <browser>` as needed).
@@ -138,7 +138,11 @@ repo root; they forward into the workspaces.
   live in `client/src/components/ui`, copied in via `bunx shadcn@latest add <name>`
   from `client/`. Helper `cn()` in `client/src/lib/utils.ts`. The `form` registry
   item has no files for Base UI — wire react-hook-form + zod manually (project
-  already uses `react-hook-form`, `@hookform/resolvers`, `zod`).
+  already uses `react-hook-form`, `@hookform/resolvers`, `zod`). The `dialog`
+  CLI add prompts to overwrite `button.tsx` (dependency on identical file), so
+  `dialog.tsx` is hand-written from Base UI's `@base-ui/react/dialog` primitives
+  (Root/Trigger/Portal/Backdrop/Popup/Title/Description/Close) matching the
+  base-nova style.
 - Auth: Better Auth (`better-auth`) — email/password, database sessions in
   PostgreSQL (via `prismaAdapter`), cookie-based. Server wires Better Auth's
   handler at `/api/auth/*splat` via `toNodeHandler` (`server/src/index.ts`);
