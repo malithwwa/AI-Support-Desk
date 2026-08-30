@@ -1,4 +1,5 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import axios from 'axios'
 import Users from './Users'
@@ -8,10 +9,30 @@ vi.mock('axios')
 
 const mockedAxios = vi.mocked(axios)
 
+const users = [
+  {
+    id: '1',
+    name: 'Jane Doe',
+    email: 'jane@example.com',
+    role: 'ADMIN',
+    createdAt: '2026-08-26T00:00:00.000Z',
+  },
+  {
+    id: '2',
+    name: 'John Smith',
+    email: 'john@example.com',
+    role: 'AGENT',
+    createdAt: '2026-08-27T00:00:00.000Z',
+  },
+]
+
+function mockUserList() {
+  mockedAxios.get.mockResolvedValue({ data: { users } })
+}
+
 describe('Users', () => {
   beforeEach(() => {
     vi.resetAllMocks()
-    mockedAxios.get.mockReset()
   })
 
   afterEach(() => {
@@ -27,26 +48,7 @@ describe('Users', () => {
   })
 
   it('renders the user table after a successful fetch', async () => {
-    mockedAxios.get.mockResolvedValue({
-      data: {
-        users: [
-          {
-            id: '1',
-            name: 'Jane Doe',
-            email: 'jane@example.com',
-            role: 'ADMIN',
-            createdAt: '2026-08-26T00:00:00.000Z',
-          },
-          {
-            id: '2',
-            name: 'John Smith',
-            email: 'john@example.com',
-            role: 'AGENT',
-            createdAt: '2026-08-27T00:00:00.000Z',
-          },
-        ],
-      },
-    })
+    mockUserList()
 
     renderWithQuery(<Users />)
 
@@ -75,5 +77,100 @@ describe('Users', () => {
     await waitFor(() =>
       expect(screen.getByText('Failed to load users')).toBeInTheDocument(),
     )
+  })
+
+  it('opens the create-user dialog and validates the form', async () => {
+    mockUserList()
+    const user = userEvent.setup()
+
+    renderWithQuery(<Users />)
+
+    await screen.findByRole('cell', { name: 'Jane Doe' })
+
+    await user.click(screen.getByRole('button', { name: 'Create user' }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(
+      within(dialog).getByRole('heading', { name: 'Create user' }),
+    ).toBeInTheDocument()
+
+    await user.click(within(dialog).getByRole('button', { name: 'Create user' }))
+
+    expect(
+      within(dialog).getByText('Name must be at least 3 characters'),
+    ).toBeInTheDocument()
+    expect(
+      within(dialog).getByText('Password must be at least 8 characters'),
+    ).toBeInTheDocument()
+
+    expect(mockedAxios.post).not.toHaveBeenCalled()
+  })
+
+  it('creates a user, closes the dialog, and refreshes the list', async () => {
+    mockUserList()
+    mockedAxios.post.mockResolvedValue({
+      data: {
+        user: {
+          id: '3',
+          name: 'Alice Wong',
+          email: 'alice@example.com',
+          role: 'AGENT',
+          createdAt: '2026-08-28T00:00:00.000Z',
+        },
+      },
+    })
+    const user = userEvent.setup()
+
+    renderWithQuery(<Users />)
+
+    await screen.findByRole('cell', { name: 'Jane Doe' })
+    await user.click(screen.getByRole('button', { name: 'Create user' }))
+
+    const dialog = await screen.findByRole('dialog')
+    await user.type(within(dialog).getByLabelText('Name'), 'Alice Wong')
+    await user.type(within(dialog).getByLabelText('Email'), 'alice@example.com')
+    await user.type(within(dialog).getByLabelText('Password'), 'password123')
+
+    await user.click(within(dialog).getByRole('button', { name: 'Create user' }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        '/api/users',
+        { name: 'Alice Wong', email: 'alice@example.com', password: 'password123' },
+        { withCredentials: true },
+      )
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    expect(mockedAxios.get).toHaveBeenCalledTimes(2)
+  })
+
+  it('shows a server error when creation fails', async () => {
+    mockUserList()
+    mockedAxios.post.mockRejectedValue(new Error('network error'))
+    const user = userEvent.setup()
+
+    renderWithQuery(<Users />)
+
+    await screen.findByRole('cell', { name: 'Jane Doe' })
+    await user.click(screen.getByRole('button', { name: 'Create user' }))
+
+    const dialog = await screen.findByRole('dialog')
+    await user.type(within(dialog).getByLabelText('Name'), 'Alice Wong')
+    await user.type(within(dialog).getByLabelText('Email'), 'alice@example.com')
+    await user.type(within(dialog).getByLabelText('Password'), 'password123')
+
+    await user.click(within(dialog).getByRole('button', { name: 'Create user' }))
+
+    await waitFor(() =>
+      expect(
+        within(dialog).getByText('Failed to create user'),
+      ).toBeInTheDocument(),
+    )
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 })
