@@ -28,6 +28,9 @@ repo root; they forward into the workspaces.
 ## Conventions
 
 - Bun, not npm: `bun install`, `bun run`, `bun --hot`.
+- Do NOT write or run e2e tests, component/unit tests, or `git add`/`git commit`
+  unless the user explicitly asks for them. Modify code only; leave tests and
+  git operations to the user unless requested.
 - Server imports use explicit `.ts` extensions (required by Bun; enabled via
   `allowImportingTsExtensions` in `server/tsconfig.json`).
 - Server runs TypeScript directly — no build/compile step for dev.
@@ -133,16 +136,19 @@ repo root; they forward into the workspaces.
   (`@tanstack/react-query`) for server state. Use `axios.get<ResponseType>()`
   with explicit generic types; avoid `as` casts. Use `useQuery` for data
   fetching — never raw `useEffect` + `useState` for server data.
-- UI: shadcn/ui with **Base UI** primitives (`@base-ui/react`), Nova preset
-  (neutral theme, CSS variables). Config in `client/components.json`. Components
-  live in `client/src/components/ui`, copied in via `bunx shadcn@latest add <name>`
-  from `client/`. Helper `cn()` in `client/src/lib/utils.ts`. The `form` registry
-  item has no files for Base UI — wire react-hook-form + zod manually (project
-  already uses `react-hook-form`, `@hookform/resolvers`, `zod`). The `dialog`
-  CLI add prompts to overwrite `button.tsx` (dependency on identical file), so
-  `dialog.tsx` is hand-written from Base UI's `@base-ui/react/dialog` primitives
-  (Root/Trigger/Portal/Backdrop/Popup/Title/Description/Close) matching the
-  base-nova style.
+- UI: standard shadcn/ui (Radix primitives via the `radix-ui` metapackage),
+  `new-york` style, neutral theme, CSS variables (in `client/components.json`).
+  Components live in `client/src/components/ui`, added via
+  `bunx shadcn@latest add <name> -y -o` from `client/`. Helper `cn()` in
+  `client/src/lib/utils.ts`. The `form` registry item has no files — wire
+  react-hook-form + zod manually (project already uses `react-hook-form`,
+  `@hookform/resolvers`, `zod`). No `@base-ui/react` dependencies.
+- Server routes: API endpoints are split into routers under `server/src/routes/`
+  mounted in `server/src/index.ts` at `/api`. User endpoints (GET `/me`,
+  GET/POST `/users`, zod validation + hashed credential-account creation) live
+  in `server/src/routes/users.ts`; `router` in `routes/index.ts` holds the
+  example `/message` route. Shared `apiLimiter` (production-only rate limit)
+  lives in `server/src/middleware/rate-limit.ts`.
 - Auth: Better Auth (`better-auth`) — email/password, database sessions in
   PostgreSQL (via `prismaAdapter`), cookie-based. Server wires Better Auth's
   handler at `/api/auth/*splat` via `toNodeHandler` (`server/src/index.ts`);
@@ -158,7 +164,7 @@ repo root; they forward into the workspaces.
   reads the session from request headers (`auth.api.getSession` +
   `fromNodeHeaders`), returns 401 on failure, and attaches `req.session` /
   `req.user` (typed globally in `server/src/types/express.d.ts`). Route example:
-  `GET /api/me` in `server/src/index.ts`.
+  `GET /api/me` in `server/src/routes/users.ts`.
 - Client auth: `authClient` from `createAuthClient()` in
   `client/src/lib/auth-client.ts` (exposes `signIn`, `signOut`, `useSession`).
   Uses the `inferAdditionalFields` plugin (from `better-auth/client/plugins`)
