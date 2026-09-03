@@ -1,10 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ComponentProps } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
-import { useForm } from 'react-hook-form'
+import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { createUserSchema, type CreateUserInput } from '@helpdesk/core'
+import {
+  createUserSchema,
+  updateUserSchema,
+  type CreateUserInput,
+  type UpdateUserInput,
+} from '@helpdesk/core'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -25,8 +30,15 @@ interface User {
   createdAt: string
 }
 
-async function createUser(input: CreateUserInput) {
-  const { data } = await axios.post<{ user: User }>('/api/users', input, {
+async function createUser(playload: CreateUserInput) {
+  const { data } = await axios.post<{ user: User }>('/api/users', playload, {
+    withCredentials: true,
+  })
+  return data.user
+}
+
+async function updateUser(id: string, playload: UpdateUserInput) {
+  const { data } = await axios.patch<{ user: User }>(`/api/users/${id}`, playload, {
     withCredentials: true,
   })
   return data.user
@@ -46,38 +58,73 @@ function AutofillBlockedInput(props: ComponentProps<typeof Input>) {
   )
 }
 
-function CreateUserDialog({
+function UserFormDialog({
   open,
   onOpenChange,
+  user,
 }: {
   open: boolean
   onOpenChange: (o: boolean) => void
+  user?: User | null
 }) {
   const queryClient = useQueryClient()
   const [error, setError] = useState('')
+  const isEdit = Boolean(user)
+
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<CreateUserInput>({
-    resolver: zodResolver(createUserSchema),
-    defaultValues: { name: '', email: '', password: '' },
+    resolver: zodResolver(
+      isEdit ? updateUserSchema : createUserSchema,
+    ) as Resolver<CreateUserInput>,
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+    },
   })
 
+  useEffect(() => {
+    if (open) {
+      reset({
+        name: user?.name ?? '',
+        email: user?.email ?? '',
+        password: '',
+      })
+      setError('')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, user?.id])
+
   const mutation = useMutation({
-    mutationFn: createUser,
+    mutationFn: (input: CreateUserInput) => {
+      if (isEdit && user) {
+        const payload: UpdateUserInput = { name: input.name, email: input.email }
+        if (input.password) {
+          payload.password = input.password
+        }
+        return updateUser(user.id, payload)
+      }
+      return createUser(input)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
       onOpenChange(false)
-      reset()
+      reset({
+        name: user?.name ?? '',
+        email: user?.email ?? '',
+        password: '',
+      })
       setError('')
     },
     onError: (err) => {
       if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error ?? 'Failed to create user')
+        setError(err.response?.data?.error ?? 'Failed to save user')
       } else {
-        setError('Failed to create user')
+        setError('Failed to save user')
       }
     },
   })
@@ -90,7 +137,11 @@ function CreateUserDialog({
   function handleOpenChange(next: boolean) {
     onOpenChange(next)
     if (!next) {
-      reset()
+      reset({
+        name: user?.name ?? '',
+        email: user?.email ?? '',
+        password: '',
+      })
       setError('')
     }
   }
@@ -99,9 +150,11 @@ function CreateUserDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create user</DialogTitle>
+          <DialogTitle>{isEdit ? 'Edit user' : 'Create user'}</DialogTitle>
           <DialogDescription>
-            Add a new agent to the helpdesk.
+            {isEdit
+              ? "Update the user's details. Leave the password blank to keep it unchanged."
+              : 'Add a new agent to the helpdesk.'}
           </DialogDescription>
         </DialogHeader>
         <form
@@ -139,12 +192,15 @@ function CreateUserDialog({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">
+              {isEdit ? 'New password (optional)' : 'Password'}
+            </Label>
             <AutofillBlockedInput
               id="password"
               type="password"
               autoComplete="new-password"
               aria-invalid={errors.password ? true : undefined}
+              placeholder={isEdit ? 'Leave blank to keep current password' : ''}
               {...register('password')}
             />
             {errors.password && (
@@ -156,7 +212,7 @@ function CreateUserDialog({
 
           <DialogFooter>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Creating…' : 'Create user'}
+              {isSubmitting ? 'Saving…' : isEdit ? 'Save changes' : 'Create user'}
             </Button>
           </DialogFooter>
         </form>
@@ -165,4 +221,4 @@ function CreateUserDialog({
   )
 }
 
-export default CreateUserDialog
+export default UserFormDialog

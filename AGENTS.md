@@ -30,8 +30,12 @@ from the repo root; they forward into the workspaces.
 
 - Bun, not npm: `bun install`, `bun run`, `bun --hot`.
 - Do NOT write or run e2e tests, component/unit tests, or `git add`/`git commit`
-  unless the user explicitly asks for them. Modify code only; leave tests and
-  git operations to the user unless requested.
+  unless the user explicitly asks for them. This includes running the test suites
+  (`bun run test`, `bun run test:e2e`, `bunx playwright`, `vitest`) merely to
+  "verify" changes, and running `bun run build`/root `bun run build` (which runs
+  test/build scripts). You may still run `bun run typecheck` to confirm code
+  compiles. Modify code only; leave tests and git operations to the user unless
+  requested.
 - Server imports use explicit `.ts` extensions (required by Bun; enabled via
   `allowImportingTsExtensions` in `server/tsconfig.json`).
 - Server runs TypeScript directly — no build/compile step for dev.

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import CreateUserDialog from '@/components/CreateUserDialog'
+import UserFormDialog from '@/components/UserFormDialog'
 import { UsersTable, UsersTableSkeleton, type User } from '@/components/UsersTable'
 
 interface UsersResponse {
@@ -22,7 +22,18 @@ function Users() {
     queryKey: ['users'],
     queryFn: fetchUsers,
   })
-  const [createOpen, setCreateOpen] = useState(false)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editUser, setEditUser] = useState<User | null>(null)
+
+  function openCreate() {
+    setEditUser(null)
+    setDialogOpen(true)
+  }
+
+  function openEdit(user: User) {
+    setEditUser(user)
+    setDialogOpen(true)
+  }
 
   if (isLoading) {
     return (
@@ -49,19 +60,19 @@ function Users() {
       <div className="w-full max-w-7xl">
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-zinc-900">Users</h1>
-          <Button
-            onClick={() => setCreateOpen(true)}
-            aria-haspopup="dialog"
-            aria-expanded={createOpen}
-          >
+          <Button onClick={openCreate} aria-haspopup="dialog" aria-expanded={dialogOpen}>
             <UserPlus className="size-4" />
             Create user
           </Button>
         </div>
 
-        <UsersTable users={users} />
+        <UsersTable users={users} onEdit={openEdit} />
 
-        <CreateUserDialog open={createOpen} onOpenChange={setCreateOpen} />
+        <UserFormDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          user={editUser}
+        />
       </div>
     </main>
   )

@@ -167,7 +167,7 @@ describe('Users', () => {
 
     await waitFor(() =>
       expect(
-        within(dialog).getByText('Failed to create user'),
+        within(dialog).getByText('Failed to save user'),
       ).toBeInTheDocument(),
     )
 

@@ -8,6 +8,8 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
+import { Pencil } from 'lucide-react'
 
 export interface User {
   id: string
@@ -50,7 +52,7 @@ function UsersTableSkeleton() {
   )
 }
 
-function UsersTable({ users }: { users: User[] }) {
+function UsersTable({ users, onEdit }: { users: User[]; onEdit: (user: User) => void }) {
   return (
     <Table>
       <TableHeader>
@@ -59,6 +61,9 @@ function UsersTable({ users }: { users: User[] }) {
           <TableHead>Email</TableHead>
           <TableHead>Role</TableHead>
           <TableHead>Joined</TableHead>
+          <TableHead className="w-[60px]">
+            <span className="sr-only">Actions</span>
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -77,6 +82,16 @@ function UsersTable({ users }: { users: User[] }) {
             </TableCell>
             <TableCell className="text-zinc-600">
               {new Date(user.createdAt).toLocaleDateString()}
+            </TableCell>
+            <TableCell className="text-right">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={`Edit ${user.name}`}
+                onClick={() => onEdit(user)}
+              >
+                <Pencil className="size-4" />
+              </Button>
             </TableCell>
           </TableRow>
         ))}

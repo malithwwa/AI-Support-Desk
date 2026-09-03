@@ -1,1 +1,6 @@
-export { createUserSchema, type CreateUserInput } from "./schemas/index.ts";
+export {
+  createUserSchema,
+  type CreateUserInput,
+  updateUserSchema,
+  type UpdateUserInput,
+} from "./schemas/index.ts";

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { randomUUID } from "node:crypto";
 import { hashPassword } from "better-auth/crypto";
-import { createUserSchema } from "@helpdesk/core";
+import { createUserSchema, updateUserSchema } from "@helpdesk/core";
 import prisma from "../db.ts";
 import { requireAuth } from "../middleware/require-auth.ts";
 import { requireAdmin } from "../middleware/require-admin.ts";
@@ -80,6 +80,64 @@ router.post("/users", apiLimiter, requireAuth, requireAdmin, async (req, res) =>
       email,
       role: UserRole.AGENT,
       createdAt: new Date().toISOString(),
+    },
+  });
+});
+
+router.patch("/users/:id", apiLimiter, requireAuth, requireAdmin, async (req, res) => {
+  const parsed = updateUserSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: "Validation failed",
+      issues: parsed.error.flatten().fieldErrors,
+    });
+    return;
+  }
+
+  const { id } = req.params as { id: string };
+  const { name, email, password } = parsed.data;
+
+  const existing = await prisma.user.findUnique({ where: { id } });
+  if (!existing) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  if (email !== existing.email) {
+    const clash = await prisma.user.findUnique({ where: { email } });
+    if (clash) {
+      res.status(409).json({ error: "A user with this email already exists" });
+      return;
+    }
+  }
+
+  let passwordHash: string | null = null;
+  if (password) {
+    passwordHash = await hashPassword(password);
+  }
+
+  await prisma.user.update({
+    where: { id },
+    data: {
+      name,
+      email,
+    },
+  });
+
+  if (passwordHash) {
+    await prisma.account.updateMany({
+      where: { userId: id, providerId: "credential" },
+      data: { password: passwordHash },
+    });
+  }
+
+  res.json({
+    user: {
+      id,
+      name,
+      email,
+      role: existing.role,
+      createdAt: existing.createdAt.toISOString(),
     },
   });
 });

@@ -3,19 +3,27 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import axios from 'axios'
-import CreateUserDialog from './CreateUserDialog'
+import UserFormDialog from './UserFormDialog'
 import { renderWithQuery } from '@/test/render-with-query'
 
 vi.mock('axios')
 
 const mockedAxios = vi.mocked(axios)
 
+const alice = {
+  id: '1',
+  name: 'Alice Wong',
+  email: 'alice@example.com',
+  role: 'AGENT',
+  createdAt: '2026-08-28T00:00:00.000Z',
+}
+
 function StatefulDialog() {
   const [open, setOpen] = useState(true)
   return (
     <>
       <button onClick={() => setOpen(true)}>Create user</button>
-      <CreateUserDialog open={open} onOpenChange={setOpen} />
+      <UserFormDialog open={open} onOpenChange={setOpen} />
     </>
   )
 }
@@ -23,11 +31,11 @@ function StatefulDialog() {
 function renderDialog(open = true, onOpenChange = vi.fn()) {
   return {
     onOpenChange,
-    ...renderWithQuery(<CreateUserDialog open={open} onOpenChange={onOpenChange} />),
+    ...renderWithQuery(<UserFormDialog open={open} onOpenChange={onOpenChange} />),
   }
 }
 
-describe('CreateUserDialog', () => {
+describe('UserFormDialog (create mode)', () => {
   beforeEach(() => {
     vi.resetAllMocks()
   })
@@ -74,17 +82,7 @@ describe('CreateUserDialog', () => {
   })
 
   it('submits valid input to /api/users on success', async () => {
-    mockedAxios.post.mockResolvedValue({
-      data: {
-        user: {
-          id: '1',
-          name: 'Alice Wong',
-          email: 'alice@example.com',
-          role: 'AGENT',
-          createdAt: '2026-08-28T00:00:00.000Z',
-        },
-      },
-    })
+    mockedAxios.post.mockResolvedValue({ data: { user: alice } })
     const user = userEvent.setup()
 
     renderDialog()
@@ -106,21 +104,11 @@ describe('CreateUserDialog', () => {
   })
 
   it('closes the dialog and clears the form after a successful submit', async () => {
-    mockedAxios.post.mockResolvedValue({
-      data: {
-        user: {
-          id: '1',
-          name: 'Alice Wong',
-          email: 'alice@example.com',
-          role: 'AGENT',
-          createdAt: '2026-08-28T00:00:00.000Z',
-        },
-      },
-    })
+    mockedAxios.post.mockResolvedValue({ data: { user: alice } })
     const user = userEvent.setup()
 
     const onOpenChange = vi.fn()
-    renderWithQuery(<CreateUserDialog open onOpenChange={onOpenChange} />)
+    renderWithQuery(<UserFormDialog open onOpenChange={onOpenChange} />)
 
     const dialog = within(screen.getByRole('dialog'))
     await user.type(dialog.getByLabelText('Name'), 'Alice Wong')
@@ -164,7 +152,110 @@ describe('CreateUserDialog', () => {
     await user.click(dialog.getByRole('button', { name: 'Create user' }))
 
     await waitFor(() =>
-      expect(dialog.getByText('Failed to create user')).toBeInTheDocument(),
+      expect(dialog.getByText('Failed to save user')).toBeInTheDocument(),
     )
+  })
+})
+
+describe('UserFormDialog (edit mode)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+  })
+
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  function renderEdit(user: typeof alice = alice) {
+    const onOpenChange = vi.fn()
+    renderWithQuery(<UserFormDialog open user={user} onOpenChange={onOpenChange} />)
+    return { onOpenChange }
+  }
+
+  it('renders with the user data prefilled', () => {
+    renderEdit()
+
+    const dialog = within(screen.getByRole('dialog'))
+    expect(dialog.getByRole('heading', { name: 'Edit user' })).toBeInTheDocument()
+    expect(dialog.getByLabelText('Name')).toHaveValue('Alice Wong')
+    expect(dialog.getByLabelText('Email')).toHaveValue('alice@example.com')
+    expect(dialog.getByLabelText('New password (optional)')).toHaveValue('')
+    expect(dialog.getByRole('button', { name: 'Save changes' })).toBeInTheDocument()
+  })
+
+  it('submits an update to /api/users/:id with the password when provided', async () => {
+    mockedAxios.patch.mockResolvedValue({ data: { user: alice } })
+    const user = userEvent.setup()
+
+    renderEdit()
+
+    const dialog = within(screen.getByRole('dialog'))
+    await user.clear(dialog.getByLabelText('Name'))
+    await user.type(dialog.getByLabelText('Name'), 'Alice Changed')
+    await user.type(dialog.getByLabelText('New password (optional)'), 'newpass123')
+
+    await user.click(dialog.getByRole('button', { name: 'Save changes' }))
+
+    await waitFor(() => {
+      expect(mockedAxios.patch).toHaveBeenCalledWith(
+        '/api/users/1',
+        {
+          name: 'Alice Changed',
+          email: 'alice@example.com',
+          password: 'newpass123',
+        },
+        { withCredentials: true },
+      )
+    })
+  })
+
+  it('omits the password from the update when left blank', async () => {
+    mockedAxios.patch.mockResolvedValue({ data: { user: alice } })
+    const user = userEvent.setup()
+
+    renderEdit()
+
+    const dialog = within(screen.getByRole('dialog'))
+    await user.clear(dialog.getByLabelText('Name'))
+    await user.type(dialog.getByLabelText('Name'), 'Alice Changed')
+
+    await user.click(dialog.getByRole('button', { name: 'Save changes' }))
+
+    await waitFor(() => {
+      expect(mockedAxios.patch).toHaveBeenCalledWith(
+        '/api/users/1',
+        { name: 'Alice Changed', email: 'alice@example.com' },
+        { withCredentials: true },
+      )
+    })
+  })
+
+  it('closes the dialog after a successful update', async () => {
+    mockedAxios.patch.mockResolvedValue({ data: { user: alice } })
+    const user = userEvent.setup()
+
+    const { onOpenChange } = renderEdit()
+
+    const dialog = within(screen.getByRole('dialog'))
+    await user.click(dialog.getByRole('button', { name: 'Save changes' }))
+
+    await waitFor(() => {
+      expect(onOpenChange).toHaveBeenCalledWith(false)
+    })
+  })
+
+  it('shows a validation error for a too-short new password', async () => {
+    const user = userEvent.setup()
+
+    renderEdit()
+
+    const dialog = within(screen.getByRole('dialog'))
+    await user.type(dialog.getByLabelText('New password (optional)'), 'short')
+    await user.click(dialog.getByRole('button', { name: 'Save changes' }))
+
+    expect(
+      dialog.getByText('Password must be at least 8 characters'),
+    ).toBeInTheDocument()
+    expect(mockedAxios.patch).not.toHaveBeenCalled()
   })
 })
