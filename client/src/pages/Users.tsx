@@ -1,23 +1,10 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
-
-interface User {
-  id: string
-  name: string
-  email: string
-  role: string
-  createdAt: string
-}
+import { UserPlus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import CreateUserDialog from '@/components/CreateUserDialog'
+import { UsersTable, UsersTableSkeleton, type User } from '@/components/UsersTable'
 
 interface UsersResponse {
   users: User[]
@@ -35,40 +22,14 @@ function Users() {
     queryKey: ['users'],
     queryFn: fetchUsers,
   })
+  const [createOpen, setCreateOpen] = useState(false)
 
   if (isLoading) {
     return (
       <main className="flex flex-col items-center p-8 text-left">
         <div className="w-full max-w-7xl">
           <h1 className="mb-4 text-2xl font-semibold text-zinc-900">Users</h1>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Joined</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Array.from({ length: 4 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell>
-                    <Skeleton className="h-4 w-24" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-40" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-5 w-14 rounded-full" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-20" />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <UsersTableSkeleton />
         </div>
       </main>
     )
@@ -86,38 +47,21 @@ function Users() {
   return (
     <main className="flex flex-col items-center p-8 text-left">
       <div className="w-full max-w-7xl">
-        <h1 className="mb-4 text-2xl font-semibold text-zinc-900">Users</h1>
+        <div className="mb-4 flex items-center justify-between">
+          <h1 className="text-2xl font-semibold text-zinc-900">Users</h1>
+          <Button
+            onClick={() => setCreateOpen(true)}
+            aria-haspopup="dialog"
+            aria-expanded={createOpen}
+          >
+            <UserPlus className="size-4" />
+            Create user
+          </Button>
+        </div>
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Joined</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell className="font-medium">{user.name}</TableCell>
-                <TableCell className="text-zinc-600">{user.email}</TableCell>
-                <TableCell>
-                  {user.role === 'ADMIN' ? (
-                    <Badge className="bg-zinc-900 text-white hover:bg-zinc-800">
-                      admin
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary">agent</Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-zinc-600">
-                  {new Date(user.createdAt).toLocaleDateString()}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <UsersTable users={users} />
+
+        <CreateUserDialog open={createOpen} onOpenChange={setCreateOpen} />
       </div>
     </main>
   )

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { randomUUID } from "node:crypto";
-import { z } from "zod";
 import { hashPassword } from "better-auth/crypto";
+import { createUserSchema } from "@helpdesk/core";
 import prisma from "../db.ts";
 import { requireAuth } from "../middleware/require-auth.ts";
 import { requireAdmin } from "../middleware/require-admin.ts";
@@ -29,12 +29,6 @@ router.get("/users", apiLimiter, requireAuth, requireAdmin, async (_req, res) =>
     },
   });
   res.json({ users });
-});
-
-const createUserSchema = z.object({
-  name: z.string().trim().min(3, "Name must be at least 3 characters"),
-  email: z.string().trim().toLowerCase().email("Enter a valid email"),
-  password: z.string().trim().min(8, "Password must be at least 8 characters"),
 });
 
 router.post("/users", apiLimiter, requireAuth, requireAdmin, async (req, res) => {

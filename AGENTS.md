@@ -7,13 +7,14 @@ tickets.
 ## Project layout
 
 ```
+core/     Shared TypeScript code (zod schemas + inferred types), no runtime deps
 server/   Express 5 + TypeScript API (runs directly on Bun, no compile step)
 client/   React 19 + Vite + TypeScript SPA
 e2e/      Playwright end-to-end tests (own workspace)
 ```
 
-Monorepo uses Bun workspaces (`server`, `client`, `e2e`). Run commands from the
-repo root; they forward into the workspaces.
+Monorepo uses Bun workspaces (`core`, `server`, `client`, `e2e`). Run commands
+from the repo root; they forward into the workspaces.
 
 ## Commands (repo root)
 
@@ -21,8 +22,8 @@ repo root; they forward into the workspaces.
 - `bun run dev:server` / `bun run dev:client` — start one side only
 - `bun run test:e2e` — Playwright suite; starts its own servers + test DB (see Testing below)
 - `bun run test` — client component tests via Vitest + React Testing Library (jsdom, `client/src/**/*.test.tsx`)
-- `bun run typecheck` — `tsc --noEmit` in server, `tsc -b` in client, `tsc --noEmit` in e2e
-- `bun run build` — build both workspaces
+- `bun run typecheck` — `tsc --noEmit` in core, server, and e2e; `tsc -b` in client
+- `bun run build` — build both workspaces (server + client)
 - `bun install` — install/hoist dependencies across workspaces
 
 ## Conventions
@@ -38,6 +39,14 @@ repo root; they forward into the workspaces.
   override with `API_PROXY_TARGET` env var (`client/vite.config.ts`).
 - Client uses `@/*` path alias → `client/src/*` (configured in `client/tsconfig.json`,
   `client/tsconfig.app.json`, and `client/vite.config.ts`).
+- **Shared zod schemas live in the `core` workspace** (`@helpdesk/core`, exposed via
+  `core/src/index.ts`): define a schema once (e.g. `createUserSchema` in
+  `core/src/schemas/user.ts`), then import it in both `server` and `client`
+  (`import { createUserSchema } from "@helpdesk/core"`). Do NOT redefine
+  form/request validation schemas in the server or client workspaces — reference
+  the core one. Also export the inferred type (`type X = z.infer<typeof schema>`)
+  for typed form inputs. Core has no runtime deps beyond `zod`, so both runtimes
+  can consume it.
 - Backend specs: `project-scope.md`, `tech-stack.md`, `implementation-plan.md`.
 - Before starting the API (:3000) or client (:5173) to verify changes, check
   whether it is already running (e.g. `Get-NetTCPConnection -LocalPort 3000`).

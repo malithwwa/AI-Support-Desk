@@ -56,7 +56,7 @@ PostgreSQL + Prisma 7, Better Auth cookie sessions).
 
 - Prefer role-based selectors: `getByRole`, `getByLabel`, `getByText`;
   fall back to `data-testid` only when roles are impractical. UI primitives
-  are shadcn/ui on Base UI (`client/src/components/ui/`).
+  are shadcn/ui (Radix, `radix-ui` metapackage) in `client/src/components/ui/`.
 - Use web-first assertions (`expect(locator)`), never manual sleeps; keep
   hardcoded waits out of specs.
 - One behavioral concern per test; shared setup goes in fixtures or
