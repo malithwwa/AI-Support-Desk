@@ -173,4 +173,62 @@ describe('Users', () => {
 
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
+
+  it('shows the dialog when the create button is clicked', async () => {
+    mockUserList()
+    const user = userEvent.setup()
+
+    renderWithQuery(<Users />)
+
+    await screen.findByRole('cell', { name: 'Jane Doe' })
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Create user' }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(
+      within(dialog).getByRole('heading', { name: 'Create user' }),
+    ).toBeInTheDocument()
+  })
+
+  it('hides the dialog when clicking outside of it', async () => {
+    mockUserList()
+    const user = userEvent.setup()
+
+    renderWithQuery(<Users />)
+
+    await screen.findByRole('cell', { name: 'Jane Doe' })
+    await user.click(screen.getByRole('button', { name: 'Create user' }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog).toBeInTheDocument()
+
+    const overlay = document.querySelector('[data-slot="dialog-overlay"]')
+    expect(overlay).not.toBeNull()
+    await user.click(overlay as HTMLElement)
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+  })
+
+  it('hides the dialog when pressing the Escape key', async () => {
+    mockUserList()
+    const user = userEvent.setup()
+
+    renderWithQuery(<Users />)
+
+    await screen.findByRole('cell', { name: 'Jane Doe' })
+    await user.click(screen.getByRole('button', { name: 'Create user' }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+  })
 })
