@@ -87,8 +87,16 @@ function CreateUserDialog({
     mutation.mutate(data)
   }
 
+  function handleOpenChange(next: boolean) {
+    onOpenChange(next)
+    if (!next) {
+      reset()
+      setError('')
+    }
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create user</DialogTitle>
