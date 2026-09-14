@@ -4,6 +4,7 @@ import axios from 'axios'
 import { UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import UserFormDialog from '@/components/UserFormDialog'
+import DeleteUserDialog from '@/components/DeleteUserDialog'
 import { UsersTable, UsersTableSkeleton, type User } from '@/components/UsersTable'
 
 interface UsersResponse {
@@ -24,6 +25,7 @@ function Users() {
   })
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editUser, setEditUser] = useState<User | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
 
   function openCreate() {
     setEditUser(null)
@@ -33,6 +35,10 @@ function Users() {
   function openEdit(user: User) {
     setEditUser(user)
     setDialogOpen(true)
+  }
+
+  function openDelete(user: User) {
+    setDeleteTarget(user)
   }
 
   if (isLoading) {
@@ -66,12 +72,20 @@ function Users() {
           </Button>
         </div>
 
-        <UsersTable users={users} onEdit={openEdit} />
+        <UsersTable users={users} onEdit={openEdit} onDelete={openDelete} />
 
         <UserFormDialog
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           user={editUser}
+        />
+
+        <DeleteUserDialog
+          user={deleteTarget}
+          open={Boolean(deleteTarget)}
+          onOpenChange={(next) => {
+            if (!next) setDeleteTarget(null)
+          }}
         />
       </div>
     </main>

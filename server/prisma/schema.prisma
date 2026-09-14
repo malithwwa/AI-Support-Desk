@@ -25,7 +25,8 @@ model User {
   sessions      Session[]
   accounts      Account[]
 
-  role UserRole @default(AGENT)
+  role    UserRole  @default(AGENT)
+  deletedAt DateTime?
 
   @@unique([email])
   @@map("user")

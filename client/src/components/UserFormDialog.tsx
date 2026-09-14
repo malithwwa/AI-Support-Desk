@@ -84,7 +84,7 @@ function UserFormDialog({
       name: '',
       email: '',
       password: '',
-    },
+    }    
   })
 
   useEffect(() => {

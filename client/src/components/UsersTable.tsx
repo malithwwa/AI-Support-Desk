@@ -9,7 +9,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { Pencil } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 
 export interface User {
   id: string
@@ -52,7 +52,15 @@ function UsersTableSkeleton() {
   )
 }
 
-function UsersTable({ users, onEdit }: { users: User[]; onEdit: (user: User) => void }) {
+function UsersTable({
+  users,
+  onEdit,
+  onDelete,
+}: {
+  users: User[]
+  onEdit: (user: User) => void
+  onDelete: (user: User) => void
+}) {
   return (
     <Table>
       <TableHeader>
@@ -61,7 +69,7 @@ function UsersTable({ users, onEdit }: { users: User[]; onEdit: (user: User) => 
           <TableHead>Email</TableHead>
           <TableHead>Role</TableHead>
           <TableHead>Joined</TableHead>
-          <TableHead className="w-[60px]">
+          <TableHead className="w-[90px]">
             <span className="sr-only">Actions</span>
           </TableHead>
         </TableRow>
@@ -84,14 +92,27 @@ function UsersTable({ users, onEdit }: { users: User[]; onEdit: (user: User) => 
               {new Date(user.createdAt).toLocaleDateString()}
             </TableCell>
             <TableCell className="text-right">
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={`Edit ${user.name}`}
-                onClick={() => onEdit(user)}
-              >
-                <Pencil className="size-4" />
-              </Button>
+              <div className="flex items-center justify-end gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Edit ${user.name}`}
+                  onClick={() => onEdit(user)}
+                >
+                  <Pencil className="size-4" />
+                </Button>
+                {user.role !== 'ADMIN' && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Delete ${user.name}`}
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => onDelete(user)}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                )}
+              </div>
             </TableCell>
           </TableRow>
         ))}

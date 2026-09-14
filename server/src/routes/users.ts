@@ -19,6 +19,7 @@ router.get("/me", apiLimiter, requireAuth, (req, res) => {
 // No try/catch needed.
 router.get("/users", apiLimiter, requireAuth, requireAdmin, async (_req, res) => {
   const users = await prisma.user.findMany({
+    where: { deletedAt: null },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -136,6 +137,44 @@ router.patch("/users/:id", apiLimiter, requireAuth, requireAdmin, async (req, re
       id,
       name,
       email,
+      role: existing.role,
+      createdAt: existing.createdAt.toISOString(),
+    },
+  });
+});
+
+router.delete("/users/:id", apiLimiter, requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params as { id: string };
+
+  const existing = await prisma.user.findUnique({ where: { id } });
+  if (!existing) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  if (existing.role === UserRole.ADMIN) {
+    res.status(400).json({ error: "Admin users cannot be deleted" });
+    return;
+  }
+
+  if (existing.deletedAt) {
+    res.status(409).json({ error: "User is already deleted" });
+    return;
+  }
+
+  await prisma.$transaction([
+    prisma.session.deleteMany({ where: { userId: id } }),
+    prisma.user.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    }),
+  ]);
+
+  res.json({
+    user: {
+      id,
+      name: existing.name,
+      email: existing.email,
       role: existing.role,
       createdAt: existing.createdAt.toISOString(),
     },
