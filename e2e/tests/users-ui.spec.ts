@@ -1,36 +1,11 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { loginViaUi } from "../lib/authentication/login";
 import { adminEmail } from "../lib/authentication/test-users";
-
-function uniqueEmail(prefix = "create-user"): string {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
-}
-
-async function openCreateUserDialog(page: Page) {
-  // A dialog still running its exit animation is not yet detached, and its
-  // submit button ("Create user") would make the page-level trigger ambiguous.
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  await page.getByRole("button", { name: "Create user" }).click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-}
-
-async function fillCreateUserForm(
-  page: Page,
-  { name, email, password }: { name: string; email: string; password: string },
-) {
-  const dialog = page.getByRole("dialog");
-
-  const fill = async (label: string, value: string) => {
-    const field = dialog.getByLabel(label);
-    await field.click();
-    await field.fill(value);
-  };
-
-  await fill("Name", name);
-  await fill("Email", email);
-  await fill("Password", password);
-  await dialog.getByRole("button", { name: "Create user" }).click();
-}
+import {
+  fillCreateUserForm,
+  openCreateUserDialog,
+  uniqueEmail,
+} from "../lib/users";
 
 test.describe("users page (admin)", () => {
   test.beforeEach(async ({ page }) => {
