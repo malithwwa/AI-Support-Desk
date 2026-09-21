@@ -14,6 +14,18 @@ enum UserRole {
   AGENT
 }
 
+enum TicketStatus {
+  OPEN
+  RESOLVED
+  CLOSED
+}
+
+enum TicketCategory {
+  GENERAL_QUESTION
+  TECHNICAL_QUESTION
+  REFUND_REQUEST
+}
+
 model User {
   id            String    @id
   name          String
@@ -24,6 +36,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  assignedTickets Ticket[]
 
   role    UserRole  @default(AGENT)
   deletedAt DateTime?
@@ -67,6 +80,23 @@ model Account {
 
   @@index([userId])
   @@map("account")
+}
+
+model Ticket {
+  id           Int             @id @default(autoincrement())
+  subject      String
+  body         String
+  bodyHtml     String?
+  status       TicketStatus    @default(OPEN)
+  category     TicketCategory?
+  senderName   String
+  senderEmail  String
+  assignedToId String?
+  assignedTo   User?           @relation(fields: [assignedToId], references: [id])
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@map("ticket")
 }
 
 model Verification {

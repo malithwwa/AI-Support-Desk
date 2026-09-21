@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import router from "./routes/index.ts";
 import usersRouter from "./routes/users.ts";
+import webhooksRouter from "./routes/webhooks.ts";
 import prisma from "./db.ts";
 import { auth, trustedOrigin } from "./lib/auth.ts";
 import { toNodeHandler } from "better-auth/node";
@@ -38,6 +39,11 @@ app.get("/api/health", async (_req, res) => {
 
 app.use("/api", usersRouter);
 app.use("/api", router);
+app.use("/api/webhooks", webhooksRouter);
+
+if (!process.env.WEBHOOK_SECRET) {
+  console.warn("Warning: WEBHOOK_SECRET is not set. Webhook endpoints will return 500.");
+}
 
 app.use(errorHandler);
 
