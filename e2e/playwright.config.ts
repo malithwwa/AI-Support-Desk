@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getTestDatabaseUrl } from "./lib/test-db";
+import { webhookSecret } from "./lib/webhook";
 
 const e2eDir = path.dirname(fileURLToPath(import.meta.url));
 const serverDir = path.resolve(e2eDir, "..", "server");
@@ -47,6 +48,10 @@ export default defineConfig({
         DATABASE_URL: testDatabaseUrl,
         TRUSTED_ORIGIN: clientOrigin,
         BETTER_AUTH_URL: apiOrigin,
+        // Injected explicitly (Bun would auto-load server/.env.test for
+        // NODE_ENV=test, but explicit beats implicit): without it the webhook
+        // middleware returns 500 "Webhook secret is not configured".
+        WEBHOOK_SECRET: webhookSecret,
       },
     },
     {
