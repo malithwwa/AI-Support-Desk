@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import router from "./routes/index.ts";
 import usersRouter from "./routes/users.ts";
+import ticketsRouter from "./routes/tickets.ts";
 import webhooksRouter from "./routes/webhooks.ts";
 import prisma from "./db.ts";
 import { auth, trustedOrigin } from "./lib/auth.ts";
@@ -38,6 +39,7 @@ app.get("/api/health", async (_req, res) => {
 });
 
 app.use("/api", usersRouter);
+app.use("/api", ticketsRouter);
 app.use("/api", router);
 app.use("/api/webhooks", webhooksRouter);
 

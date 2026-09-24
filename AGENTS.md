@@ -51,6 +51,12 @@ from the repo root; they forward into the workspaces.
   the core one. Also export the inferred type (`type X = z.infer<typeof schema>`)
   for typed form inputs. Core has no runtime deps beyond `zod`, so both runtimes
   can consume it.
+- **Closed-set enum-like fields (e.g. `TicketStatus`: `"OPEN" | "RESOLVED" |
+  "CLOSED"`, `TicketCategory`): declare them as local union types on the client**
+  (`client/src/lib/tickets.ts`, `export type TicketStatus = ...`).
+  Do NOT import the inferred `z`-enum types from `@helpdesk/core` for these —
+  keep the values defined once in the same file that consumes them, with the
+  underlying string values matching the core schema/Prisma enums exactly.
 - Backend specs: `project-scope.md`, `tech-stack.md`, `implementation-plan.md`.
 - Before starting the API (:3000) or client (:5173) to verify changes, check
   whether it is already running (e.g. `Get-NetTCPConnection -LocalPort 3000`).

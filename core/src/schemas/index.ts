@@ -7,4 +7,8 @@ export {
 export {
   inboundEmailSchema,
   type InboundEmailInput,
+  ticketStatusSchema,
+  type TicketStatus,
+  ticketCategorySchema,
+  type TicketCategory,
 } from "./ticket.ts";

@@ -5,6 +5,7 @@ import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
 import Users from './pages/Users'
+import Tickets from './pages/Tickets'
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
+          <Route path="/tickets" element={<Tickets />} />
         </Route>
         <Route element={<AdminRoute />}>
           <Route element={<Layout />}>

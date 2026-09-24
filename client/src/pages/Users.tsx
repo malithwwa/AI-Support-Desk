@@ -44,8 +44,10 @@ function Users() {
   if (isLoading) {
     return (
       <main className="flex flex-col items-center p-8 text-left">
-        <div className="w-full max-w-7xl">
-          <h1 className="mb-4 text-2xl font-semibold text-zinc-900">Users</h1>
+        <div className="w-full max-w-5xl">
+          <div className="mb-4 flex items-center justify-between">
+            <h1 className="text-lg font-bold text-zinc-900">Users</h1>
+          </div>
           <UsersTableSkeleton />
         </div>
       </main>
@@ -54,19 +56,28 @@ function Users() {
 
   if (error) {
     return (
-      <main className="p-8 text-left">
-        <h1 className="mb-2 text-2xl font-semibold text-zinc-900">Users</h1>
-        <p className="text-[13px] text-destructive">Failed to load users</p>
+      <main className="flex flex-col items-center p-8 text-left">
+        <div className="w-full max-w-5xl">
+          <div className="mb-4 flex items-center justify-between">
+            <h1 className="text-lg font-bold text-zinc-900">Users</h1>
+          </div>
+          <p className="text-[13px] text-destructive">Failed to load users</p>
+        </div>
       </main>
     )
   }
 
   return (
     <main className="flex flex-col items-center p-8 text-left">
-      <div className="w-full max-w-7xl">
+      <div className="w-full max-w-5xl">
         <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-zinc-900">Users</h1>
-          <Button onClick={openCreate} aria-haspopup="dialog" aria-expanded={dialogOpen}>
+          <h1 className="font-bold text-zinc-900 text-lg">Users</h1>
+          <Button
+            onClick={openCreate}
+            aria-haspopup="dialog"
+            aria-expanded={dialogOpen}
+            className="text-[13px]"
+          >
             <UserPlus className="size-4" />
             Create user
           </Button>

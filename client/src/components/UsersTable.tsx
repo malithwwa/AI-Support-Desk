@@ -21,7 +21,7 @@ export interface User {
 
 function UsersTableSkeleton() {
   return (
-    <Table>
+    <Table className="text-[13px] [&_td]:py-3.5 [&_th]:h-8">
       <TableHeader>
         <TableRow>
           <TableHead>Name</TableHead>
@@ -62,7 +62,7 @@ function UsersTable({
   onDelete: (user: User) => void
 }) {
   return (
-    <Table>
+    <Table className="text-[13px] [&_td]:py-3.5 [&_th]:h-8">
       <TableHeader>
         <TableRow>
           <TableHead>Name</TableHead>
