@@ -9,4 +9,6 @@ export {
   type TicketStatus,
   ticketCategorySchema,
   type TicketCategory,
+  listTicketsQuerySchema,
+  type ListTicketsQuery,
 } from "./schemas/index.ts";

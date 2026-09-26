@@ -11,4 +11,6 @@ export {
   type TicketStatus,
   ticketCategorySchema,
   type TicketCategory,
+  listTicketsQuerySchema,
+  type ListTicketsQuery,
 } from "./ticket.ts";

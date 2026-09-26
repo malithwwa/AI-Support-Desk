@@ -1,8 +1,76 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  rowSortingFeature,
+  tableFeatures,
+  useTable,
+  type ColumnDef,
+  type SortingState,
+  type Updater,
+} from '@tanstack/react-table'
+import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Ticket, TicketStatus, TicketCategory } from '@/lib/tickets'
 import { statusLabel, categoryLabel } from '@/lib/tickets'
+
+const features = tableFeatures({ rowSortingFeature })
+
+const columns: ColumnDef<typeof features, Ticket>[] = [
+  {
+    accessorKey: 'subject',
+    header: 'Subject',
+    cell: (info) => <span className="font-medium">{info.getValue<string>()}</span>,
+  },
+  {
+    accessorKey: 'senderName',
+    header: 'Sender',
+    cell: (info) => {
+      const ticket = info.row.original
+      return (
+        <div className="flex flex-col leading-tight">
+          <span className="text-zinc-900">{ticket.senderName}</span>
+          <span className="text-zinc-400">{ticket.senderEmail}</span>
+        </div>
+      )
+    },
+  },
+  {
+    accessorKey: 'status',
+    header: 'Status',
+    cell: (info) => statusBadge(info.getValue<TicketStatus>()),
+  },
+  {
+    accessorKey: 'category',
+    header: 'Category',
+    cell: (info) => categoryBadge(info.getValue<TicketCategory | null>()),
+  },
+  {
+    accessorKey: 'createdAt',
+    header: 'Received',
+    cell: (info) => (
+      <span className="text-zinc-600">
+        {new Date(info.getValue<string>()).toLocaleDateString()}
+      </span>
+    ),
+  },
+]
+
+function sortIndicator(sorted: false | 'asc' | 'desc') {
+  if (sorted === 'asc') {
+    return <ArrowUp className="size-3" />
+  }
+  if (sorted === 'desc') {
+    return <ArrowDown className="size-3" />
+  }
+  return <ArrowUpDown className="size-3 text-zinc-400" />
+}
 
 function TicketsTableSkeleton() {
   return (
@@ -59,33 +127,59 @@ function categoryBadge(category: TicketCategory | null) {
   )
 }
 
-function TicketsTable({ tickets }: { tickets: Ticket[] }) {
+function TicketsTable({
+  tickets,
+  sorting,
+  onSortingChange,
+}: {
+  tickets: Ticket[]
+  sorting: SortingState
+  onSortingChange: (sorting: Updater<SortingState>) => void
+}) {
+  const table = useTable({
+    features,
+    columns,
+    data: tickets,
+    state: { sorting },
+    onSortingChange,
+    manualSorting: true,
+  })
+
   return (
     <Table className="text-[13px] [&_td]:py-2.5 [&_th]:h-8">
       <TableHeader>
-        <TableRow>
-          <TableHead>Subject</TableHead>
-          <TableHead>Sender</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Category</TableHead>
-          <TableHead>Received</TableHead>
-        </TableRow>
+        {table.getHeaderGroups().map((headerGroup) => (
+          <TableRow key={headerGroup.id}>
+            {headerGroup.headers.map((header) => (
+              <TableHead key={header.id} className="h-8">
+                {header.isPlaceholder ? null : (
+                  <button
+                    type="button"
+                    onClick={header.column.getToggleSortingHandler()}
+                    className="flex cursor-pointer items-center gap-1 select-none"
+                  >
+                    <table.FlexRender header={header} />
+                    {sortIndicator(header.column.getIsSorted())}
+                  </button>
+                )}
+              </TableHead>
+            ))}
+          </TableRow>
+        ))}
       </TableHeader>
       <TableBody>
-        {tickets.map((ticket) => (
-          <TableRow key={ticket.id}>
-            <TableCell className="font-medium">{ticket.subject}</TableCell>
-            <TableCell className="whitespace-normal">
-              <div className="flex flex-col leading-tight">
-                <span className="text-zinc-900">{ticket.senderName}</span>
-                <span className="text-zinc-400">{ticket.senderEmail}</span>
-              </div>
-            </TableCell>
-            <TableCell>{statusBadge(ticket.status)}</TableCell>
-            <TableCell>{categoryBadge(ticket.category)}</TableCell>
-            <TableCell className="text-zinc-600">
-              {new Date(ticket.createdAt).toLocaleDateString()}
-            </TableCell>
+        {table.getRowModel().rows.map((row) => (
+          <TableRow key={row.id}>
+            {row.getAllCells().map((cell) => (
+              <TableCell
+                key={cell.id}
+                className={
+                  cell.column.id === 'senderName' ? 'whitespace-normal' : undefined
+                }
+              >
+                <table.FlexRender cell={cell} />
+              </TableCell>
+            ))}
           </TableRow>
         ))}
       </TableBody>

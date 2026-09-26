@@ -12,6 +12,23 @@ export type TicketStatus = z.infer<typeof ticketStatusSchema>;
 
 export type TicketCategory = z.infer<typeof ticketCategorySchema>;
 
+export const listTicketsQuerySchema = z.object({
+  sortBy: z
+    .enum([
+      "subject",
+      "senderName",
+      "senderEmail",
+      "status",
+      "category",
+      "createdAt",
+      "updatedAt",
+    ])
+    .default("createdAt"),
+  sortDir: z.enum(["asc", "desc"]).default("desc"),
+});
+
+export type ListTicketsQuery = z.infer<typeof listTicketsQuerySchema>;
+
 export const inboundEmailSchema = z.object({
   from: z
     .string()
