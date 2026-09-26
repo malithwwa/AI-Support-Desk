@@ -12,6 +12,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination'
 import type { Ticket } from '@/lib/tickets'
 import type { StatusFilterValue, CategoryFilterValue, TicketStatus } from '@/lib/constants'
 import {
@@ -21,8 +30,14 @@ import {
   statusLabel,
 } from '@/lib/constants'
 
+const PAGE_SIZE = 10
+
 interface TicketsResponse {
   tickets: Ticket[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
 }
 
 interface TicketFilters {
@@ -31,11 +46,13 @@ interface TicketFilters {
   search?: string
 }
 
-async function fetchTickets(sorting: SortingState, filters: TicketFilters) {
+async function fetchTickets(sorting: SortingState, filters: TicketFilters, page: number) {
   const sort = sorting[0]
   const params: Record<string, string> = {
     sortBy: sort?.id ?? 'createdAt',
     sortDir: sort ? (sort.desc ? 'desc' : 'asc') : 'desc',
+    page: String(page),
+    pageSize: String(PAGE_SIZE),
   }
   if (filters.status) params.status = filters.status
   if (filters.category) params.category = filters.category
@@ -45,7 +62,7 @@ async function fetchTickets(sorting: SortingState, filters: TicketFilters) {
     params,
     withCredentials: true,
   })
-  return data.tickets
+  return data
 }
 
 function statusFilterLabel(value: StatusFilterValue) {
@@ -64,11 +81,16 @@ function Tickets() {
   const [category, setCategory] = useState<CategoryFilterValue>('ALL')
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
 
   useEffect(() => {
     const timer = setTimeout(() => setSearch(searchInput.trim()), 300)
     return () => clearTimeout(timer)
   }, [searchInput])
+
+  useEffect(() => {
+    setPage(1)
+  }, [sorting, status, category, search])
 
   const filters: TicketFilters = {
     status: status === 'ALL' ? undefined : status,
@@ -76,10 +98,14 @@ function Tickets() {
     search: search || undefined,
   }
 
-  const { data: tickets = [], isLoading, error } = useQuery({
-    queryKey: ['tickets', sorting, filters],
-    queryFn: () => fetchTickets(sorting, filters),
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['tickets', sorting, filters, page],
+    queryFn: () => fetchTickets(sorting, filters, page),
   })
+
+  const tickets = data?.tickets ?? []
+  const total = data?.total ?? 0
+  const totalPages = data?.totalPages ?? 1
 
   const filterBar = (
     <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -123,12 +149,80 @@ function Tickets() {
         </SelectContent>
       </Select>
 
-      {tickets.length > 0 && (
+      {total > 0 && (
         <span className="ml-auto text-[13px] text-zinc-500">
-          {tickets.length} ticket{tickets.length === 1 ? '' : 's'}
+          {total} ticket{total === 1 ? '' : 's'}
         </span>
       )}
     </div>
+  )
+
+  const pageNumbers: number[] = []
+  for (let i = 1; i <= totalPages; i++) {
+    pageNumbers.push(i)
+  }
+
+  const pageList = pageNumbers
+    .filter(
+      (p) =>
+        p === 1 || p === totalPages || Math.abs(p - page) <= 1,
+    )
+    .reduce<(number | `ellipsis-${number}`)[]>((acc, p) => {
+      const prev = acc[acc.length - 1]
+      if (typeof prev === 'number' && p - prev > 1) {
+        acc.push(`ellipsis-${p - 1}`)
+      }
+      acc.push(p)
+      return acc
+    }, [])
+
+  const paginationBar = totalPages > 1 && (
+    <Pagination>
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious
+            href="#"
+            onClick={(event) => {
+              event.preventDefault()
+              if (page > 1) setPage(page - 1)
+            }}
+            className={page <= 1 ? 'pointer-events-none opacity-50' : undefined}
+          />
+        </PaginationItem>
+
+        {pageList.map((p) =>
+          typeof p === 'string' ? (
+            <PaginationItem key={p}>
+              <PaginationEllipsis />
+            </PaginationItem>
+          ) : (
+            <PaginationItem key={p}>
+              <PaginationLink
+                href="#"
+                onClick={(event) => {
+                  event.preventDefault()
+                  setPage(p)
+                }}
+                isActive={p === page}
+              >
+                {p}
+              </PaginationLink>
+            </PaginationItem>
+          ),
+        )}
+
+        <PaginationItem>
+          <PaginationNext
+            href="#"
+            onClick={(event) => {
+              event.preventDefault()
+              if (page < totalPages) setPage(page + 1)
+            }}
+            className={page >= totalPages ? 'pointer-events-none opacity-50' : undefined}
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
   )
 
   return (
@@ -145,7 +239,10 @@ function Tickets() {
         ) : error ? (
           <p className="text-[13px] text-destructive">Failed to load tickets</p>
         ) : (
-          <TicketsTable tickets={tickets} sorting={sorting} onSortingChange={setSorting} />
+          <>
+            <TicketsTable tickets={tickets} sorting={sorting} onSortingChange={setSorting} />
+            {paginationBar}
+          </>
         )}
       </div>
     </main>

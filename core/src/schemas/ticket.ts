@@ -37,6 +37,8 @@ export const listTicketsQuerySchema = z.object({
     .union([ticketCategoryFilterSchema, ticketCategoryFilterSchema.array()])
     .optional(),
   search: z.string().trim().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(10),
 });
 
 export type ListTicketsQuery = z.infer<typeof listTicketsQuerySchema>;

@@ -15,7 +15,8 @@ router.get("/tickets", apiLimiter, requireAuth, async (req, res) => {
       .json({ error: query.error.issues[0]?.message ?? "Invalid query" });
   }
 
-  const { sortBy, sortDir, status, category, search } = query.data;
+  const { sortBy, sortDir, status, category, search, page, pageSize } =
+    query.data;
 
   const statusList =
     typeof status === "string" ? [status] : (status ?? []);
@@ -59,24 +60,38 @@ router.get("/tickets", apiLimiter, requireAuth, async (req, res) => {
   const where: Prisma.TicketWhereInput | undefined =
     and.length > 0 ? { AND: and } : undefined;
 
-  const tickets = await prisma.ticket.findMany({
-    ...(where ? { where } : {}),
-    orderBy: { [sortBy]: sortDir },
-    select: {
-      id: true,
-      subject: true,
-      body: true,
-      bodyHtml: true,
-      status: true,
-      category: true,
-      senderName: true,
-      senderEmail: true,
-      assignedToId: true,
-      createdAt: true,
-      updatedAt: true,
-    },
+  const select = {
+    id: true,
+    subject: true,
+    body: true,
+    bodyHtml: true,
+    status: true,
+    category: true,
+    senderName: true,
+    senderEmail: true,
+    assignedToId: true,
+    createdAt: true,
+    updatedAt: true,
+  } as const;
+
+  const [tickets, total] = await prisma.$transaction([
+    prisma.ticket.findMany({
+      ...(where ? { where } : {}),
+      orderBy: { [sortBy]: sortDir },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      select,
+    }),
+    prisma.ticket.count({ ...(where ? { where } : {}) }),
+  ]);
+
+  res.json({
+    tickets,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
   });
-  res.json({ tickets });
 });
 
 export default router;
