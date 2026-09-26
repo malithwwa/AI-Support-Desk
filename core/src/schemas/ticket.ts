@@ -12,6 +12,13 @@ export type TicketStatus = z.infer<typeof ticketStatusSchema>;
 
 export type TicketCategory = z.infer<typeof ticketCategorySchema>;
 
+export const ticketCategoryFilterSchema = z.enum([
+  "GENERAL_QUESTION",
+  "TECHNICAL_QUESTION",
+  "REFUND_REQUEST",
+  "UNCATEGORIZED",
+]);
+
 export const listTicketsQuerySchema = z.object({
   sortBy: z
     .enum([
@@ -25,6 +32,11 @@ export const listTicketsQuerySchema = z.object({
     ])
     .default("createdAt"),
   sortDir: z.enum(["asc", "desc"]).default("desc"),
+  status: z.union([ticketStatusSchema, ticketStatusSchema.array()]).optional(),
+  category: z
+    .union([ticketCategoryFilterSchema, ticketCategoryFilterSchema.array()])
+    .optional(),
+  search: z.string().trim().optional(),
 });
 
 export type ListTicketsQuery = z.infer<typeof listTicketsQuerySchema>;

@@ -1,9 +1,7 @@
-export type TicketStatus = 'OPEN' | 'RESOLVED' | 'CLOSED'
+import type { TicketStatus, TicketCategory } from './constants'
 
-export type TicketCategory =
-  | 'GENERAL_QUESTION'
-  | 'TECHNICAL_QUESTION'
-  | 'REFUND_REQUEST'
+export type { TicketStatus, TicketCategory } from './constants'
+export { statusLabel, categoryLabel } from './constants'
 
 export interface Ticket {
   id: number
@@ -17,28 +15,4 @@ export interface Ticket {
   assignedToId: string | null
   createdAt: string
   updatedAt: string
-}
-
-export function statusLabel(status: TicketStatus): string {
-  switch (status) {
-    case 'OPEN':
-      return 'Open'
-    case 'RESOLVED':
-      return 'Resolved'
-    case 'CLOSED':
-      return 'Closed'
-  }
-}
-
-export function categoryLabel(category: TicketCategory | null): string {
-  switch (category) {
-    case 'GENERAL_QUESTION':
-      return 'General question'
-    case 'TECHNICAL_QUESTION':
-      return 'Technical question'
-    case 'REFUND_REQUEST':
-      return 'Refund request'
-    default:
-      return 'Uncategorized'
-  }
 }

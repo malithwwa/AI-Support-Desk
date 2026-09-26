@@ -52,11 +52,15 @@ from the repo root; they forward into the workspaces.
   for typed form inputs. Core has no runtime deps beyond `zod`, so both runtimes
   can consume it.
 - **Closed-set enum-like fields (e.g. `TicketStatus`: `"OPEN" | "RESOLVED" |
-  "CLOSED"`, `TicketCategory`): declare them as local union types on the client**
-  (`client/src/lib/tickets.ts`, `export type TicketStatus = ...`).
+  "CLOSED"`, `TicketCategory`): declare the values once as readonly constant
+  arrays in `client/src/lib/constants.ts`** (e.g. `TICKET_STATUSES`,
+  `TICKET_CATEGORIES`), derive the union types from them
+  (`type TicketStatus = (typeof TICKET_STATUSES)[number]`), and reuse the arrays
+  wherever the UI lists the options (filter bars, selects). `client/src/lib/tickets.ts`
+  re-exports the types/labels for backwards compatibility.
   Do NOT import the inferred `z`-enum types from `@helpdesk/core` for these —
-  keep the values defined once in the same file that consumes them, with the
-  underlying string values matching the core schema/Prisma enums exactly.
+  keep the underlying string values matching the core schema/Prisma enums
+  exactly.
 - Backend specs: `project-scope.md`, `tech-stack.md`, `implementation-plan.md`.
 - Before starting the API (:3000) or client (:5173) to verify changes, check
   whether it is already running (e.g. `Get-NetTCPConnection -LocalPort 3000`).
