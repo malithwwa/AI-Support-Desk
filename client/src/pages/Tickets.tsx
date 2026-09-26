@@ -121,7 +121,7 @@ function Tickets() {
       </div>
 
       <Select value={status} onValueChange={(value) => setStatus(value as StatusFilterValue)}>
-        <SelectTrigger className="w-[150px] text-[13px]">
+        <SelectTrigger className="w-37.5 text-[13px]">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
@@ -137,7 +137,7 @@ function Tickets() {
         value={category}
         onValueChange={(value) => setCategory(value as CategoryFilterValue)}
       >
-        <SelectTrigger className="w-[170px] text-[13px]">
+        <SelectTrigger className="w-42.5 text-[13px]">
           <SelectValue placeholder="Category" />
         </SelectTrigger>
         <SelectContent>
