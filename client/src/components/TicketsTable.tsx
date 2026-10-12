@@ -7,6 +7,7 @@ import {
   type Updater,
 } from '@tanstack/react-table'
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
+import { Link } from 'react-router'
 import {
   Table,
   TableBody,
@@ -26,7 +27,17 @@ const columns: ColumnDef<typeof features, Ticket>[] = [
   {
     accessorKey: 'subject',
     header: 'Subject',
-    cell: (info) => <span className="font-medium">{info.getValue<string>()}</span>,
+    cell: (info) => {
+      const ticket = info.row.original
+      return (
+        <Link
+          to={`/tickets/${ticket.id}`}
+          className="link font-medium wrap-break-word"
+        >
+          {info.getValue<string>()}
+        </Link>
+      )
+    },
   },
   {
     accessorKey: 'senderName',

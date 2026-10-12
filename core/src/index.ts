@@ -11,4 +11,6 @@ export {
   type TicketCategory,
   listTicketsQuerySchema,
   type ListTicketsQuery,
+  ticketIdParamSchema,
+  type TicketIdParam,
 } from "./schemas/index.ts";

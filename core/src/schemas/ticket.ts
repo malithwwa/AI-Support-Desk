@@ -43,6 +43,12 @@ export const listTicketsQuerySchema = z.object({
 
 export type ListTicketsQuery = z.infer<typeof listTicketsQuerySchema>;
 
+export const ticketIdParamSchema = z.object({
+  id: z.coerce.number().int().positive(),
+});
+
+export type TicketIdParam = z.infer<typeof ticketIdParamSchema>;
+
 export const inboundEmailSchema = z.object({
   from: z
     .string()

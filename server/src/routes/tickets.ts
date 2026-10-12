@@ -1,11 +1,25 @@
 import { Router } from "express";
-import { listTicketsQuerySchema } from "@helpdesk/core";
+import { listTicketsQuerySchema, ticketIdParamSchema } from "@helpdesk/core";
 import prisma from "../db.ts";
 import { Prisma } from "../generated/prisma/client.ts";
 import { requireAuth } from "../middleware/require-auth.ts";
 import { apiLimiter } from "../middleware/rate-limit.ts";
 
 const router = Router();
+
+const ticketSelect = {
+  id: true,
+  subject: true,
+  body: true,
+  bodyHtml: true,
+  status: true,
+  category: true,
+  senderName: true,
+  senderEmail: true,
+  assignedToId: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
 
 router.get("/tickets", apiLimiter, requireAuth, async (req, res) => {
   const query = listTicketsQuerySchema.safeParse(req.query);
@@ -60,27 +74,13 @@ router.get("/tickets", apiLimiter, requireAuth, async (req, res) => {
   const where: Prisma.TicketWhereInput | undefined =
     and.length > 0 ? { AND: and } : undefined;
 
-  const select = {
-    id: true,
-    subject: true,
-    body: true,
-    bodyHtml: true,
-    status: true,
-    category: true,
-    senderName: true,
-    senderEmail: true,
-    assignedToId: true,
-    createdAt: true,
-    updatedAt: true,
-  } as const;
-
   const [tickets, total] = await prisma.$transaction([
     prisma.ticket.findMany({
       ...(where ? { where } : {}),
       orderBy: { [sortBy]: sortDir },
       skip: (page - 1) * pageSize,
       take: pageSize,
-      select,
+      select: ticketSelect,
     }),
     prisma.ticket.count({ ...(where ? { where } : {}) }),
   ]);
@@ -92,6 +92,30 @@ router.get("/tickets", apiLimiter, requireAuth, async (req, res) => {
     pageSize,
     totalPages: Math.ceil(total / pageSize),
   });
+});
+
+router.get("/tickets/:id", apiLimiter, requireAuth, async (req, res) => {
+  const params = ticketIdParamSchema.safeParse(req.params);
+  if (!params.success) {
+    return res
+      .status(400)
+      .json({ error: params.error.issues[0]?.message ?? "Invalid ticket id" });
+  }
+
+  const ticket = await prisma.ticket.findUnique({
+    where: { id: params.data.id },
+    include: {
+      assignedTo: {
+        select: { id: true, name: true, email: true },
+      },
+    },
+  });
+
+  if (!ticket) {
+    return res.status(404).json({ error: "Ticket not found" });
+  }
+
+  res.json({ ticket });
 });
 
 export default router;

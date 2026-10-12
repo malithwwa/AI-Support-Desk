@@ -16,3 +16,13 @@ export interface Ticket {
   createdAt: string
   updatedAt: string
 }
+
+export interface TicketAssignee {
+  id: string
+  name: string
+  email: string
+}
+
+export interface TicketDetail extends Ticket {
+  assignedTo: TicketAssignee | null
+}
