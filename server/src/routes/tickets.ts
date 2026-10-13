@@ -1,8 +1,13 @@
 import { Router } from "express";
-import { listTicketsQuerySchema, ticketIdParamSchema } from "@helpdesk/core";
+import {
+  assignTicketSchema,
+  listTicketsQuerySchema,
+  ticketIdParamSchema,
+} from "@helpdesk/core";
 import prisma from "../db.ts";
 import { Prisma } from "../generated/prisma/client.ts";
 import { requireAuth } from "../middleware/require-auth.ts";
+import { requireAdmin } from "../middleware/require-admin.ts";
 import { apiLimiter } from "../middleware/rate-limit.ts";
 
 const router = Router();
@@ -19,6 +24,12 @@ const ticketSelect = {
   assignedToId: true,
   createdAt: true,
   updatedAt: true,
+} as const;
+
+const ticketInclude = {
+  assignedTo: {
+    select: { id: true, name: true, email: true },
+  },
 } as const;
 
 router.get("/tickets", apiLimiter, requireAuth, async (req, res) => {
@@ -104,11 +115,7 @@ router.get("/tickets/:id", apiLimiter, requireAuth, async (req, res) => {
 
   const ticket = await prisma.ticket.findUnique({
     where: { id: params.data.id },
-    include: {
-      assignedTo: {
-        select: { id: true, name: true, email: true },
-      },
-    },
+    include: ticketInclude,
   });
 
   if (!ticket) {
@@ -117,5 +124,55 @@ router.get("/tickets/:id", apiLimiter, requireAuth, async (req, res) => {
 
   res.json({ ticket });
 });
+
+router.patch(
+  "/tickets/:id",
+  apiLimiter,
+  requireAuth,
+  requireAdmin,
+  async (req, res) => {
+    const params = ticketIdParamSchema.safeParse(req.params);
+    if (!params.success) {
+      return res
+        .status(400)
+        .json({ error: params.error.issues[0]?.message ?? "Invalid ticket id" });
+    }
+
+    const body = assignTicketSchema.safeParse(req.body);
+    if (!body.success) {
+      return res.status(400).json({
+        error: "Validation failed",
+        issues: body.error.flatten().fieldErrors,
+      });
+    }
+
+    const { assignedToId } = body.data;
+
+    const existing = await prisma.ticket.findUnique({
+      where: { id: params.data.id },
+    });
+    if (!existing) {
+      return res.status(404).json({ error: "Ticket not found" });
+    }
+
+    if (assignedToId !== null) {
+      const assignee = await prisma.user.findFirst({
+        where: { id: assignedToId, deletedAt: null },
+        select: { id: true },
+      });
+      if (!assignee) {
+        return res.status(400).json({ error: "Assignee not found" });
+      }
+    }
+
+    const ticket = await prisma.ticket.update({
+      where: { id: params.data.id },
+      data: { assignedToId },
+      include: ticketInclude,
+    });
+
+    res.json({ ticket });
+  },
+);
 
 export default router;

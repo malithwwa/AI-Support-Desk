@@ -1,17 +1,54 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import axios, { isAxiosError } from 'axios'
 import { Link, useParams } from 'react-router'
 import { ArrowLeft } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useSession } from '@/lib/auth-client'
 import { categoryLabel, statusLabel } from '@/lib/constants'
 import type { TicketAssignee, TicketDetail as TicketDetailData } from '@/lib/tickets'
+
+const UNASSIGNED = 'UNASSIGNED'
+
+interface AssignableUser {
+  id: string
+  name: string
+  email: string
+  role: 'ADMIN' | 'AGENT'
+}
+
+interface UsersResponse {
+  users: AssignableUser[]
+}
 
 async function fetchTicket(id: number) {
   const { data } = await axios.get<{ ticket: TicketDetailData }>(`/api/tickets/${id}`, {
     withCredentials: true,
   })
+  return data.ticket
+}
+
+async function fetchAgents() {
+  const { data } = await axios.get<UsersResponse>('/api/users', {
+    withCredentials: true,
+  })
+  return data.users.filter((user) => user.role === 'AGENT')
+}
+
+async function assignTicket(id: number, assignedToId: string | null) {
+  const { data } = await axios.patch<{ ticket: TicketDetailData }>(
+    `/api/tickets/${id}`,
+    { assignedToId },
+    { withCredentials: true },
+  )
   return data.ticket
 }
 
@@ -45,11 +82,34 @@ function TicketDetail() {
   const ticketId = Number(id)
   const isValidId = Number.isInteger(ticketId) && ticketId > 0
 
+  const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const isAdmin = session?.user.role === 'ADMIN'
+
   const { data: ticket, isLoading, error, isError } = useQuery({
     queryKey: ['ticket', ticketId],
     queryFn: () => fetchTicket(ticketId),
     enabled: isValidId,
   })
+
+  const { data: agents } = useQuery({
+    queryKey: ['agents'],
+    queryFn: fetchAgents,
+    enabled: isAdmin,
+  })
+
+  const assignMutation = useMutation({
+    mutationFn: (assignedToId: string | null) => assignTicket(ticketId, assignedToId),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['ticket', ticketId], updated)
+    },
+  })
+
+  const assignError = assignMutation.isError
+    ? isAxiosError(assignMutation.error)
+      ? (assignMutation.error.response?.data?.error ?? 'Failed to assign ticket')
+      : 'Failed to assign ticket'
+    : null
 
   const notFound =
     isError && isAxiosError(error) && error.response?.status === 404
@@ -90,8 +150,36 @@ function TicketDetail() {
                 ) : (
                   <Badge variant="ghost">{categoryLabel(ticket.category)}</Badge>
                 )}
-                {assigneeTag(ticket.assignedTo)}
+                {!isAdmin && assigneeTag(ticket.assignedTo)}
               </div>
+
+              {isAdmin && (
+                <div className="flex flex-col gap-1">
+                  <span className="text-[13px] text-zinc-500">Assigned to</span>
+                  <Select
+                    value={ticket.assignedTo?.id ?? UNASSIGNED}
+                    onValueChange={(value) =>
+                      assignMutation.mutate(value === UNASSIGNED ? null : value)
+                    }
+                    disabled={assignMutation.isPending}
+                  >
+                    <SelectTrigger className="w-64 text-[13px]" aria-label="Assign ticket">
+                      <SelectValue placeholder="Unassigned" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={UNASSIGNED}>Unassigned</SelectItem>
+                      {(agents ?? []).map((agent) => (
+                        <SelectItem key={agent.id} value={agent.id}>
+                          {agent.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {assignError && (
+                    <p className="text-[13px] text-destructive">{assignError}</p>
+                  )}
+                </div>
+              )}
             </div>
 
             <Card>
