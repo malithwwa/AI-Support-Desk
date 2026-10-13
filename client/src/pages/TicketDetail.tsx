@@ -74,7 +74,7 @@ function TicketDetail() {
         ) : (
           <>
             <div className="flex flex-col gap-2">
-              <h1 className="text-lg font-bold break-words text-zinc-900">
+              <h1 className="text-lg font-bold wrap-break-word text-zinc-900">
                 {ticket.subject}
               </h1>
               <div className="flex flex-wrap items-center gap-2">
