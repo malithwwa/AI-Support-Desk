@@ -15,6 +15,6 @@ export {
   type ListTicketsQuery,
   ticketIdParamSchema,
   type TicketIdParam,
-  assignTicketSchema,
-  type AssignTicketInput,
+  updateTicketSchema,
+  type UpdateTicketInput,
 } from "./ticket.ts";

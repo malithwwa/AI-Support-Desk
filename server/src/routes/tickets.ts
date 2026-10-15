@@ -1,8 +1,8 @@
 import { Router } from "express";
 import {
-  assignTicketSchema,
   listTicketsQuerySchema,
   ticketIdParamSchema,
+  updateTicketSchema,
 } from "@helpdesk/core";
 import prisma from "../db.ts";
 import { Prisma } from "../generated/prisma/client.ts";
@@ -138,7 +138,7 @@ router.patch(
         .json({ error: params.error.issues[0]?.message ?? "Invalid ticket id" });
     }
 
-    const body = assignTicketSchema.safeParse(req.body);
+    const body = updateTicketSchema.safeParse(req.body);
     if (!body.success) {
       return res.status(400).json({
         error: "Validation failed",
@@ -146,7 +146,7 @@ router.patch(
       });
     }
 
-    const { assignedToId } = body.data;
+    const { assignedToId, status, category } = body.data;
 
     const existing = await prisma.ticket.findUnique({
       where: { id: params.data.id },
@@ -155,7 +155,7 @@ router.patch(
       return res.status(404).json({ error: "Ticket not found" });
     }
 
-    if (assignedToId !== null) {
+    if (assignedToId !== undefined && assignedToId !== null) {
       const assignee = await prisma.user.findFirst({
         where: { id: assignedToId, deletedAt: null },
         select: { id: true },
@@ -165,9 +165,14 @@ router.patch(
       }
     }
 
+    const data: Prisma.TicketUncheckedUpdateInput = {};
+    if (assignedToId !== undefined) data.assignedToId = assignedToId;
+    if (status !== undefined) data.status = status;
+    if (category !== undefined) data.category = category;
+
     const ticket = await prisma.ticket.update({
       where: { id: params.data.id },
-      data: { assignedToId },
+      data,
       include: ticketInclude,
     });
 

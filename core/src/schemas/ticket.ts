@@ -49,11 +49,17 @@ export const ticketIdParamSchema = z.object({
 
 export type TicketIdParam = z.infer<typeof ticketIdParamSchema>;
 
-export const assignTicketSchema = z.object({
-  assignedToId: z.string().min(1).nullable(),
-});
+export const updateTicketSchema = z
+  .object({
+    assignedToId: z.string().min(1).nullable().optional(),
+    status: ticketStatusSchema.optional(),
+    category: ticketCategorySchema.nullable().optional(),
+  })
+  .refine((data) => Object.values(data).some((value) => value !== undefined), {
+    message: "At least one field must be provided",
+  });
 
-export type AssignTicketInput = z.infer<typeof assignTicketSchema>;
+export type UpdateTicketInput = z.infer<typeof updateTicketSchema>;
 
 export const inboundEmailSchema = z.object({
   from: z
