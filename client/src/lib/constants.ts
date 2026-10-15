@@ -45,11 +45,11 @@ export function statusLabel(status: TicketStatus): string {
 export function categoryLabel(category: TicketCategory | null): string {
   switch (category) {
     case 'GENERAL_QUESTION':
-      return 'General question'
+      return 'General Question'
     case 'TECHNICAL_QUESTION':
-      return 'Technical question'
+      return 'Technical Question'
     case 'REFUND_REQUEST':
-      return 'Refund request'
+      return 'Refund Request'
     default:
       return 'Uncategorized'
   }

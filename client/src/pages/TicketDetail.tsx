@@ -125,7 +125,7 @@ function TicketDetail() {
 
   return (
     <main className="flex flex-col items-center p-8 text-left">
-      <div className="flex w-full max-w-3xl flex-col gap-6">
+      <div className="flex w-full max-w-5xl flex-col gap-6">
         <Link
           to="/tickets"
           className="flex w-fit items-center gap-1 text-[13px] text-zinc-500 transition hover:text-zinc-900"
@@ -141,164 +141,179 @@ function TicketDetail() {
         ) : error || !ticket ? (
           <p className="text-[13px] text-destructive">Failed to load ticket</p>
         ) : (
-          <>
-            <div className="flex flex-col gap-2">
-              <h1 className="text-lg font-bold wrap-break-word text-zinc-900">
-                {ticket.subject}
-              </h1>
-              {isAdmin ? (
-                <div className="flex flex-col gap-3">
-                  <div className="flex flex-wrap gap-3">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[13px] text-zinc-500">Status</span>
-                      <Select
-                        value={ticket.status}
-                        onValueChange={(value) =>
-                          updateMutation.mutate({ status: value as TicketStatus })
-                        }
-                        disabled={updateMutation.isPending}
-                      >
-                        <SelectTrigger
-                          className="w-48 text-[13px]"
-                          aria-label="Ticket status"
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {TICKET_STATUSES.map((status) => (
-                            <SelectItem key={status} value={status}>
-                              {statusLabel(status)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[13px] text-zinc-500">Category</span>
-                      <Select
-                        value={ticket.category ?? UNCATEGORIZED}
-                        onValueChange={(value) =>
-                          updateMutation.mutate({
-                            category:
-                              value === UNCATEGORIZED
-                                ? null
-                                : (value as TicketCategory),
-                          })
-                        }
-                        disabled={updateMutation.isPending}
-                      >
-                        <SelectTrigger
-                          className="w-48 text-[13px]"
-                          aria-label="Ticket category"
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={UNCATEGORIZED}>
-                            {categoryLabel(null)}
-                          </SelectItem>
-                          {TICKET_CATEGORIES.map((category) => (
-                            <SelectItem key={category} value={category}>
-                              {categoryLabel(category)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[13px] text-zinc-500">Assigned to</span>
-                      <Select
-                        value={ticket.assignedTo?.id ?? UNASSIGNED}
-                        onValueChange={(value) =>
-                          updateMutation.mutate({
-                            assignedToId: value === UNASSIGNED ? null : value,
-                          })
-                        }
-                        disabled={updateMutation.isPending}
-                      >
-                        <SelectTrigger
-                          className="w-48 text-[13px]"
-                          aria-label="Assign ticket"
-                        >
-                          <SelectValue placeholder="Unassigned" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={UNASSIGNED}>Unassigned</SelectItem>
-                          {(agents ?? []).map((agent) => (
-                            <SelectItem key={agent.id} value={agent.id}>
-                              {agent.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+          <div
+            className={
+              isAdmin
+                ? 'grid gap-6 md:grid-cols-[minmax(0,1fr)_16rem]'
+                : 'flex flex-col gap-6'
+            }
+          >
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-2">
+                <h1 className="text-lg font-bold wrap-break-word text-zinc-900">
+                  {ticket.subject}
+                </h1>
+                {!isAdmin && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {ticket.status === 'OPEN' ? (
+                      <Badge className="bg-zinc-900 text-white hover:bg-zinc-800">
+                        {statusLabel(ticket.status)}
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary">{statusLabel(ticket.status)}</Badge>
+                    )}
+                    {ticket.category ? (
+                      <Badge variant="outline">{categoryLabel(ticket.category)}</Badge>
+                    ) : (
+                      <Badge variant="ghost">{categoryLabel(ticket.category)}</Badge>
+                    )}
+                    {assigneeTag(ticket.assignedTo)}
                   </div>
+                )}
+              </div>
 
-                  {updateError && (
-                    <p className="text-[13px] text-destructive">{updateError}</p>
-                  )}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-[13px] font-medium text-zinc-500">
+                    From
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-zinc-900">{ticket.senderName}</span>
+                    <a href={`mailto:${ticket.senderEmail}`} className="link">
+                      {ticket.senderEmail}
+                    </a>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-[13px] font-medium text-zinc-500">
+                    Message
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-[13px] break-words whitespace-pre-wrap text-zinc-900">
+                    {ticket.body}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <dl className="flex flex-wrap gap-x-8 gap-y-1 text-[13px]">
+                <div className="flex gap-2">
+                  <dt className="text-zinc-500">Received</dt>
+                  <dd className="text-zinc-900">{formatDateTime(ticket.createdAt)}</dd>
                 </div>
-              ) : (
-                <div className="flex flex-wrap items-center gap-2">
-                  {ticket.status === 'OPEN' ? (
-                    <Badge className="bg-zinc-900 text-white hover:bg-zinc-800">
-                      {statusLabel(ticket.status)}
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary">{statusLabel(ticket.status)}</Badge>
-                  )}
-                  {ticket.category ? (
-                    <Badge variant="outline">{categoryLabel(ticket.category)}</Badge>
-                  ) : (
-                    <Badge variant="ghost">{categoryLabel(ticket.category)}</Badge>
-                  )}
-                  {assigneeTag(ticket.assignedTo)}
+                <div className="flex gap-2">
+                  <dt className="text-zinc-500">Last updated</dt>
+                  <dd className="text-zinc-900">{formatDateTime(ticket.updatedAt)}</dd>
                 </div>
-              )}
+              </dl>
             </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-[13px] font-medium text-zinc-500">
-                  From
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col leading-tight">
-                  <span className="text-zinc-900">{ticket.senderName}</span>
-                  <a href={`mailto:${ticket.senderEmail}`} className="link">
-                    {ticket.senderEmail}
-                  </a>
+            {isAdmin && (
+              <div className="flex flex-col items-end gap-4">
+                <div className="flex w-1/2 flex-col gap-1">
+                  <span className="text-[13px] text-zinc-500">Status</span>
+                  <Select
+                    value={ticket.status}
+                    onValueChange={(value) =>
+                      updateMutation.mutate({ status: value as TicketStatus })
+                    }
+                    disabled={updateMutation.isPending}
+                  >
+                    <SelectTrigger
+                      className="w-full text-[13px]"
+                      aria-label="Ticket status"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent
+                      position="popper"
+                      className="w-(--radix-select-trigger-width)"
+                    >
+                      {TICKET_STATUSES.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {statusLabel(status)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </CardContent>
-            </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-[13px] font-medium text-zinc-500">
-                  Message
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-[13px] break-words whitespace-pre-wrap text-zinc-900">
-                  {ticket.body}
-                </p>
-              </CardContent>
-            </Card>
+                <div className="flex w-1/2 flex-col gap-1">
+                  <span className="text-[13px] text-zinc-500">Category</span>
+                  <Select
+                    value={ticket.category ?? UNCATEGORIZED}
+                    onValueChange={(value) =>
+                      updateMutation.mutate({
+                        category:
+                          value === UNCATEGORIZED ? null : (value as TicketCategory),
+                      })
+                    }
+                    disabled={updateMutation.isPending}
+                  >
+                    <SelectTrigger
+                      className="w-full text-[13px]"
+                      aria-label="Ticket category"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent
+                      position="popper"
+                      className="w-(--radix-select-trigger-width)"
+                    >
+                      <SelectItem value={UNCATEGORIZED}>
+                        {categoryLabel(null)}
+                      </SelectItem>
+                      {TICKET_CATEGORIES.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {categoryLabel(category)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <dl className="flex flex-wrap gap-x-8 gap-y-1 text-[13px]">
-              <div className="flex gap-2">
-                <dt className="text-zinc-500">Received</dt>
-                <dd className="text-zinc-900">{formatDateTime(ticket.createdAt)}</dd>
+                <div className="flex w-1/2 flex-col gap-1">
+                  <span className="text-[13px] text-zinc-500">Assigned to</span>
+                  <Select
+                    value={ticket.assignedTo?.id ?? UNASSIGNED}
+                    onValueChange={(value) =>
+                      updateMutation.mutate({
+                        assignedToId: value === UNASSIGNED ? null : value,
+                      })
+                    }
+                    disabled={updateMutation.isPending}
+                  >
+                    <SelectTrigger
+                      className="w-full text-[13px]"
+                      aria-label="Assign ticket"
+                    >
+                      <SelectValue placeholder="Unassigned" />
+                    </SelectTrigger>
+                    <SelectContent
+                      position="popper"
+                      className="w-(--radix-select-trigger-width)"
+                    >
+                      <SelectItem value={UNASSIGNED}>Unassigned</SelectItem>
+                      {(agents ?? []).map((agent) => (
+                        <SelectItem key={agent.id} value={agent.id}>
+                          {agent.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {updateError && (
+                  <p className="text-[13px] text-destructive">{updateError}</p>
+                )}
               </div>
-              <div className="flex gap-2">
-                <dt className="text-zinc-500">Last updated</dt>
-                <dd className="text-zinc-900">{formatDateTime(ticket.updatedAt)}</dd>
-              </div>
-            </dl>
-          </>
+            )}
+          </div>
         )}
       </div>
     </main>
