@@ -6,7 +6,7 @@ import { Link, useParams } from 'react-router'
 import { ArrowLeft } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -221,123 +221,6 @@ function TicketDetail() {
                 )}
               </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-[13px] font-medium text-zinc-500">
-                    From
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col leading-tight">
-                    <span className="text-zinc-900">{ticket.senderName}</span>
-                    <a href={`mailto:${ticket.senderEmail}`} className="link">
-                      {ticket.senderEmail}
-                    </a>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-[13px] font-medium text-zinc-500">
-                    Message
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-[13px] break-words whitespace-pre-wrap text-zinc-900">
-                    {ticket.body}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-[13px] font-medium text-zinc-500">
-                    Replies ({ticket.replies.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {ticket.replies.length === 0 ? (
-                    <p className="text-[13px] text-zinc-500">No replies yet.</p>
-                  ) : (
-                    <ul className="flex flex-col gap-4">
-                      {ticket.replies.map((reply) => (
-                        <li
-                          key={reply.id}
-                          className="flex flex-col gap-1 border-b border-zinc-100 pb-4 last:border-0 last:pb-0"
-                        >
-                          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                            <span className="text-[13px] font-medium text-zinc-900">
-                              {reply.user.name}
-                            </span>
-                            <Badge
-                              variant={
-                                reply.senderType === 'AGENT'
-                                  ? 'secondary'
-                                  : 'outline'
-                              }
-                            >
-                              {senderTypeLabel(reply.senderType)}
-                            </Badge>
-                            <a
-                              href={`mailto:${reply.user.email}`}
-                              className="link text-[13px]"
-                            >
-                              {reply.user.email}
-                            </a>
-                            <span className="text-[13px] text-zinc-500">
-                              {formatDateTime(reply.createdAt)}
-                            </span>
-                          </div>
-                          <p className="text-[13px] break-words whitespace-pre-wrap text-zinc-900">
-                            {reply.body}
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-[13px] font-medium text-zinc-500">
-                    Reply
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form
-                    className="flex flex-col gap-3"
-                    onSubmit={handleSubmit((input) => replyMutation.mutate(input))}
-                    noValidate
-                  >
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="reply-body" className="text-[13px] text-zinc-500">
-                        Message
-                      </Label>
-                      <Textarea
-                        id="reply-body"
-                        rows={5}
-                        placeholder="Write a reply…"
-                        aria-invalid={errors.body ? true : undefined}
-                        {...register('body')}
-                      />
-                      {errors.body && (
-                        <p className="text-[13px] text-destructive">{errors.body.message}</p>
-                      )}
-                      {replyError && (
-                        <p className="text-[13px] text-destructive">{replyError}</p>
-                      )}
-                    </div>
-                    <div className="flex justify-end">
-                      <Button type="submit" size="sm" disabled={replyMutation.isPending}>
-                        {replyMutation.isPending ? 'Sending…' : 'Send reply'}
-                      </Button>
-                    </div>
-                  </form>
-                </CardContent>
-              </Card>
-
               <dl className="flex flex-wrap gap-x-8 gap-y-1 text-[13px]">
                 <div className="flex gap-2">
                   <dt className="text-zinc-500">Received</dt>
@@ -348,6 +231,82 @@ function TicketDetail() {
                   <dd className="text-zinc-900">{formatDateTime(ticket.updatedAt)}</dd>
                 </div>
               </dl>
+
+              <Card>
+                <CardContent className="flex flex-col gap-1">
+                  <h2 className="text-sm font-bold text-zinc-900">Message</h2>
+                  <p className="text-[13px] text-zinc-500">
+                    From {' '}
+                    <a href={`mailto:${ticket.senderEmail}`} className="link text-[13px] text-zinc-500">
+                      {ticket.senderName}
+                    </a>
+                  </p>
+                  <p className="text-[13px] wrap-break-word whitespace-pre-wrap text-zinc-900 mt-5">
+                    {ticket.body}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <div className="flex flex-col gap-3">
+                <h2 className="text-sm font-bold text-zinc-900">
+                  Replies ({ticket.replies.length})
+                </h2>
+                {ticket.replies.length === 0 ? (
+                  <p className="text-[13px] text-zinc-500">No replies yet.</p>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {ticket.replies.map((reply) => (
+                      <Card key={reply.id}>
+                        <CardContent className="flex flex-col gap-1">
+                          <span className="text-sm font-medium text-zinc-900">
+                            {reply.useremail}
+                          </span>
+                          <span className="text-[13px] text-zinc-500">
+                            {senderTypeLabel(reply.senderType)} ·{' '}
+                            {formatDateTime(reply.createdAt)}
+                          </span>
+                          <p className="text-[13px] mt-5 wrap-break-word whitespace-pre-wrap text-zinc-900">
+                            {reply.body}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <h2 className="text-sm font-bold text-zinc-900">Reply</h2>
+                <form
+                  className="flex flex-col gap-3"
+                  onSubmit={handleSubmit((input) => replyMutation.mutate(input))}
+                  noValidate
+                >
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="reply-body" className="text-[13px] text-zinc-500">
+                      Message
+                    </Label>
+                    <Textarea
+                      id="reply-body"
+                      rows={5}
+                      placeholder="Write a reply…"
+                      aria-invalid={errors.body ? true : undefined}
+                      {...register('body')}
+                    />
+                    {errors.body && (
+                      <p className="text-[13px] text-destructive">{errors.body.message}</p>
+                    )}
+                    {replyError && (
+                      <p className="text-[13px] text-destructive">{replyError}</p>
+                    )}
+                  </div>
+                  <div className="flex justify-end">
+                    <Button type="submit" size="sm" disabled={replyMutation.isPending}>
+                      {replyMutation.isPending ? 'Sending…' : 'Send reply'}
+                    </Button>
+                  </div>
+                </form>
+              </div>
             </div>
 
             {isAdmin && (
