@@ -17,4 +17,6 @@ export {
   type TicketIdParam,
   updateTicketSchema,
   type UpdateTicketInput,
+  createTicketReplySchema,
+  type CreateTicketReplyInput,
 } from "./ticket.ts";

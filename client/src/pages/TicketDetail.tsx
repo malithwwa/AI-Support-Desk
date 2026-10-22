@@ -1,9 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import axios, { isAxiosError } from 'axios'
+import { useForm, type Resolver } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useParams } from 'react-router'
 import { ArrowLeft } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -12,17 +16,27 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
 import { useSession } from '@/lib/auth-client'
 import {
   TICKET_CATEGORIES,
   TICKET_STATUSES,
   categoryLabel,
+  senderTypeLabel,
   statusLabel,
   type TicketCategory,
   type TicketStatus,
 } from '@/lib/constants'
-import type { TicketAssignee, TicketDetail as TicketDetailData } from '@/lib/tickets'
-import type { UpdateTicketInput } from '@helpdesk/core'
+import type {
+  TicketAssignee,
+  TicketDetail as TicketDetailData,
+  TicketReply,
+} from '@/lib/tickets'
+import {
+  createTicketReplySchema,
+  type CreateTicketReplyInput,
+  type UpdateTicketInput,
+} from '@helpdesk/core'
 
 const UNASSIGNED = 'UNASSIGNED'
 const UNCATEGORIZED = 'UNCATEGORIZED'
@@ -59,6 +73,15 @@ async function updateTicket(id: number, patch: UpdateTicketInput) {
     { withCredentials: true },
   )
   return data.ticket
+}
+
+async function createReply(id: number, input: CreateTicketReplyInput) {
+  const { data } = await axios.post<{ reply: TicketReply }>(
+    `/api/tickets/${id}/replies`,
+    input,
+    { withCredentials: true },
+  )
+  return data.reply
 }
 
 function assigneeTag(assignedTo: TicketAssignee | null) {
@@ -114,10 +137,36 @@ function TicketDetail() {
     },
   })
 
+  const replyMutation = useMutation({
+    mutationFn: (input: CreateTicketReplyInput) => createReply(ticketId, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ticket', ticketId] })
+      reset({ body: '' })
+    },
+  })
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<CreateTicketReplyInput>({
+    resolver: zodResolver(createTicketReplySchema) as Resolver<CreateTicketReplyInput>,
+    defaultValues: {
+      body: '',
+    },
+  })
+
   const updateError = updateMutation.isError
     ? isAxiosError(updateMutation.error)
       ? (updateMutation.error.response?.data?.error ?? 'Failed to update ticket')
       : 'Failed to update ticket'
+    : null
+
+  const replyError = replyMutation.isError
+    ? isAxiosError(replyMutation.error)
+      ? (replyMutation.error.response?.data?.error ?? 'Failed to post reply')
+      : 'Failed to post reply'
     : null
 
   const notFound =
@@ -198,6 +247,94 @@ function TicketDetail() {
                   <p className="text-[13px] break-words whitespace-pre-wrap text-zinc-900">
                     {ticket.body}
                   </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-[13px] font-medium text-zinc-500">
+                    Replies ({ticket.replies.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {ticket.replies.length === 0 ? (
+                    <p className="text-[13px] text-zinc-500">No replies yet.</p>
+                  ) : (
+                    <ul className="flex flex-col gap-4">
+                      {ticket.replies.map((reply) => (
+                        <li
+                          key={reply.id}
+                          className="flex flex-col gap-1 border-b border-zinc-100 pb-4 last:border-0 last:pb-0"
+                        >
+                          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                            <span className="text-[13px] font-medium text-zinc-900">
+                              {reply.user.name}
+                            </span>
+                            <Badge
+                              variant={
+                                reply.senderType === 'AGENT'
+                                  ? 'secondary'
+                                  : 'outline'
+                              }
+                            >
+                              {senderTypeLabel(reply.senderType)}
+                            </Badge>
+                            <a
+                              href={`mailto:${reply.user.email}`}
+                              className="link text-[13px]"
+                            >
+                              {reply.user.email}
+                            </a>
+                            <span className="text-[13px] text-zinc-500">
+                              {formatDateTime(reply.createdAt)}
+                            </span>
+                          </div>
+                          <p className="text-[13px] break-words whitespace-pre-wrap text-zinc-900">
+                            {reply.body}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-[13px] font-medium text-zinc-500">
+                    Reply
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form
+                    className="flex flex-col gap-3"
+                    onSubmit={handleSubmit((input) => replyMutation.mutate(input))}
+                    noValidate
+                  >
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="reply-body" className="text-[13px] text-zinc-500">
+                        Message
+                      </Label>
+                      <Textarea
+                        id="reply-body"
+                        rows={5}
+                        placeholder="Write a reply…"
+                        aria-invalid={errors.body ? true : undefined}
+                        {...register('body')}
+                      />
+                      {errors.body && (
+                        <p className="text-[13px] text-destructive">{errors.body.message}</p>
+                      )}
+                      {replyError && (
+                        <p className="text-[13px] text-destructive">{replyError}</p>
+                      )}
+                    </div>
+                    <div className="flex justify-end">
+                      <Button type="submit" size="sm" disabled={replyMutation.isPending}>
+                        {replyMutation.isPending ? 'Sending…' : 'Send reply'}
+                      </Button>
+                    </div>
+                  </form>
                 </CardContent>
               </Card>
 

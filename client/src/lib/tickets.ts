@@ -1,7 +1,11 @@
-import type { TicketStatus, TicketCategory } from './constants'
+import type { TicketStatus, TicketCategory, ReplySenderType } from './constants'
 
-export type { TicketStatus, TicketCategory } from './constants'
-export { statusLabel, categoryLabel } from './constants'
+export type {
+  TicketStatus,
+  TicketCategory,
+  ReplySenderType,
+} from './constants'
+export { statusLabel, categoryLabel, senderTypeLabel } from './constants'
 
 export interface Ticket {
   id: number
@@ -23,6 +27,17 @@ export interface TicketAssignee {
   email: string
 }
 
+export interface TicketReply {
+  id: number
+  ticketId: number
+  userId: string
+  user: TicketAssignee
+  senderType: ReplySenderType
+  body: string
+  createdAt: string
+}
+
 export interface TicketDetail extends Ticket {
   assignedTo: TicketAssignee | null
+  replies: TicketReply[]
 }

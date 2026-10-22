@@ -15,4 +15,6 @@ export {
   type TicketIdParam,
   updateTicketSchema,
   type UpdateTicketInput,
+  createTicketReplySchema,
+  type CreateTicketReplyInput,
 } from "./schemas/index.ts";

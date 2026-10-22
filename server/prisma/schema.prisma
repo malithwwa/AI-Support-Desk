@@ -37,6 +37,7 @@ model User {
   sessions      Session[]
   accounts      Account[]
   assignedTickets Ticket[]
+  replies      Reply[]
 
   role    UserRole  @default(AGENT)
   deletedAt DateTime?
@@ -93,10 +94,30 @@ model Ticket {
   senderEmail  String
   assignedToId String?
   assignedTo   User?           @relation(fields: [assignedToId], references: [id])
+  replies      Reply[]
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
   @@map("ticket")
+}
+
+enum ReplySenderType {
+  AGENT
+  CUSTOMER
+}
+
+model Reply {
+  id         Int             @id @default(autoincrement())
+  body       String
+  ticketId   Int
+  ticket     Ticket          @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User            @relation(fields: [userId], references: [id])
+  senderType ReplySenderType
+  createdAt  DateTime        @default(now())
+
+  @@index([ticketId])
+  @@map("reply")
 }
 
 model Verification {

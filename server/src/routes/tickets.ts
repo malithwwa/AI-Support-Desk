@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  createTicketReplySchema,
   listTicketsQuerySchema,
   ticketIdParamSchema,
   updateTicketSchema,
@@ -26,9 +27,19 @@ const ticketSelect = {
   updatedAt: true,
 } as const;
 
+const replyInclude = {
+  user: {
+    select: { id: true, name: true, email: true },
+  },
+} as const;
+
 const ticketInclude = {
   assignedTo: {
     select: { id: true, name: true, email: true },
+  },
+  replies: {
+    orderBy: { createdAt: "asc" },
+    include: replyInclude,
   },
 } as const;
 
@@ -124,6 +135,56 @@ router.get("/tickets/:id", apiLimiter, requireAuth, async (req, res) => {
 
   res.json({ ticket });
 });
+
+router.post(
+  "/tickets/:id/replies",
+  apiLimiter,
+  requireAuth,
+  async (req, res) => {
+    const params = ticketIdParamSchema.safeParse(req.params);
+    if (!params.success) {
+      return res
+        .status(400)
+        .json({ error: params.error.issues[0]?.message ?? "Invalid ticket id" });
+    }
+
+    const body = createTicketReplySchema.safeParse(req.body);
+    if (!body.success) {
+      return res
+        .status(400)
+        .json({ error: body.error.issues[0]?.message ?? "Invalid reply" });
+    }
+
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: params.data.id },
+      select: { id: true },
+    });
+    if (!ticket) {
+      return res.status(404).json({ error: "Ticket not found" });
+    }
+
+    const [, reply] = await prisma.$transaction([
+      prisma.reply.create({
+        data: {
+          ticketId: ticket.id,
+          userId: req.user.id,
+          // Replies posted through the API come from signed-in staff;
+          // customer replies arrive via the inbound-email webhook.
+          senderType: "AGENT",
+          body: body.data.body,
+        },
+        include: replyInclude,
+      }),
+      // Bump the ticket's updatedAt so it reflects the new activity.
+      prisma.ticket.update({
+        where: { id: ticket.id },
+        data: { updatedAt: new Date() },
+      }),
+    ]);
+
+    res.status(201).json({ reply });
+  },
+);
 
 router.patch(
   "/tickets/:id",

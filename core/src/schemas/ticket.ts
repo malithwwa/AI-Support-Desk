@@ -61,6 +61,16 @@ export const updateTicketSchema = z
 
 export type UpdateTicketInput = z.infer<typeof updateTicketSchema>;
 
+export const createTicketReplySchema = z.object({
+  body: z
+    .string()
+    .trim()
+    .min(1, "Reply body is required")
+    .max(20_000, "Reply body is too long"),
+});
+
+export type CreateTicketReplyInput = z.infer<typeof createTicketReplySchema>;
+
 export const inboundEmailSchema = z.object({
   from: z
     .string()

@@ -31,6 +31,9 @@ export const TICKET_SORT_COLUMNS = [
 ] as const
 export type TicketSortColumn = (typeof TICKET_SORT_COLUMNS)[number]
 
+export const REPLY_SENDER_TYPES = ['AGENT', 'CUSTOMER'] as const
+export type ReplySenderType = (typeof REPLY_SENDER_TYPES)[number]
+
 export function statusLabel(status: TicketStatus): string {
   switch (status) {
     case 'OPEN':
@@ -52,5 +55,14 @@ export function categoryLabel(category: TicketCategory | null): string {
       return 'Refund Request'
     default:
       return 'Uncategorized'
+  }
+}
+
+export function senderTypeLabel(type: ReplySenderType): string {
+  switch (type) {
+    case 'AGENT':
+      return 'Agent'
+    case 'CUSTOMER':
+      return 'Customer'
   }
 }
