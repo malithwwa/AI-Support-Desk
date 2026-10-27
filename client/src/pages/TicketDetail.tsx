@@ -1,3 +1,4 @@
+import DOMPurify from 'isomorphic-dompurify'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import axios, { isAxiosError } from 'axios'
 import { useForm, type Resolver } from 'react-hook-form'
@@ -144,7 +145,11 @@ function TicketDetailPage() {
                             {formatDateTime(reply.createdAt)}
                           </span>
                           <p className="text-[13px] mt-5 wrap-break-word whitespace-pre-wrap text-zinc-900">
-                            {reply.body}
+                            {DOMPurify.sanitize(reply.body, {
+                              ALLOWED_TAGS: [],
+                              ALLOWED_ATTR: [],
+                              USE_PROFILES: { html: false },
+                            })}
                           </p>
                         </CardContent>
                       </Card>

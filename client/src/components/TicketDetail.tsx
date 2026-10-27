@@ -1,3 +1,4 @@
+import DOMPurify from 'isomorphic-dompurify'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { categoryLabel, statusLabel } from '@/lib/constants'
@@ -20,6 +21,12 @@ function assigneeTag(assignedTo: TicketAssignee | null) {
 }
 
 function TicketDetail({ ticket, showBadges = false }: TicketDetailProps) {
+  const sanitizedBody = DOMPurify.sanitize(ticket.body, {
+    ALLOWED_TAGS: [],
+    ALLOWED_ATTR: [],
+    USE_PROFILES: { html: false },
+  })
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
@@ -69,7 +76,7 @@ function TicketDetail({ ticket, showBadges = false }: TicketDetailProps) {
             </a>
           </p>
           <p className="text-[13px] wrap-break-word whitespace-pre-wrap text-zinc-900 mt-5">
-            {ticket.body}
+            {sanitizedBody}
           </p>
         </CardContent>
       </Card>
