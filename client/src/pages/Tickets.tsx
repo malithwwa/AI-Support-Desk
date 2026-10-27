@@ -121,10 +121,10 @@ function Tickets() {
       </div>
 
       <Select value={status} onValueChange={(value) => setStatus(value as StatusFilterValue)}>
-        <SelectTrigger className="w-37.5 text-[13px]">
+        <SelectTrigger className="w-40 text-[13px]">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="min-w-40">
           {STATUS_FILTERS.map((value) => (
             <SelectItem key={value} value={value}>
               {statusFilterLabel(value)}
@@ -137,10 +137,10 @@ function Tickets() {
         value={category}
         onValueChange={(value) => setCategory(value as CategoryFilterValue)}
       >
-        <SelectTrigger className="w-42.5 text-[13px]">
+        <SelectTrigger className="w-48 text-[13px]">
           <SelectValue placeholder="Category" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="min-w-48">
           {CATEGORY_FILTERS.map((value) => (
             <SelectItem key={value} value={value}>
               {categoryFilterLabel(value)}
