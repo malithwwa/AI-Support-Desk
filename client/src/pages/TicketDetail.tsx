@@ -199,7 +199,7 @@ function TicketDetail() {
           >
             <div className="flex flex-col gap-6">
               <div className="flex flex-col gap-2">
-                <h1 className="text-lg font-bold wrap-break-word text-zinc-900">
+                <h1 className="text-xl font-bold wrap-break-word text-zinc-900">
                   {ticket.subject}
                 </h1>
                 {!isAdmin && (
@@ -221,13 +221,13 @@ function TicketDetail() {
                 )}
               </div>
 
-              <dl className="flex flex-wrap gap-x-8 gap-y-1 text-[13px]">
-                <div className="flex gap-2">
-                  <dt className="text-zinc-500">Received</dt>
+              <dl className="flex flex-wrap gap-x-6 gap-y-1 text-[13px]">
+                <div className="flex gap-1.5">
+                  <dt className="text-zinc-500">Created</dt>
                   <dd className="text-zinc-900">{formatDateTime(ticket.createdAt)}</dd>
                 </div>
-                <div className="flex gap-2">
-                  <dt className="text-zinc-500">Last updated</dt>
+                <div className="flex gap-1.5">
+                  <dt className="text-zinc-500">Updated</dt>
                   <dd className="text-zinc-900">{formatDateTime(ticket.updatedAt)}</dd>
                 </div>
               </dl>
@@ -236,8 +236,11 @@ function TicketDetail() {
                 <CardContent className="flex flex-col gap-1">
                   <h2 className="text-sm font-bold text-zinc-900">Message</h2>
                   <p className="text-[13px] text-zinc-500">
-                    From {' '}
-                    <a href={`mailto:${ticket.senderEmail}`} className="link text-[13px] text-zinc-500">
+                    From{' '}
+                    <a
+                      href={`mailto:${ticket.senderEmail}`}
+                      className="link text-[13px] text-zinc-500"
+                    >
                       {ticket.senderName}
                     </a>
                   </p>
@@ -259,7 +262,7 @@ function TicketDetail() {
                       <Card key={reply.id}>
                         <CardContent className="flex flex-col gap-1">
                           <span className="text-sm font-medium text-zinc-900">
-                            {reply.useremail}
+                            {reply.user.name}
                           </span>
                           <span className="text-[13px] text-zinc-500">
                             {senderTypeLabel(reply.senderType)} ·{' '}
@@ -311,7 +314,7 @@ function TicketDetail() {
 
             {isAdmin && (
               <div className="flex flex-col items-end gap-4">
-                <div className="flex w-1/2 flex-col gap-1">
+                <div className="flex w-full flex-col gap-1">
                   <span className="text-[13px] text-zinc-500">Status</span>
                   <Select
                     value={ticket.status}
@@ -339,7 +342,7 @@ function TicketDetail() {
                   </Select>
                 </div>
 
-                <div className="flex w-1/2 flex-col gap-1">
+                <div className="flex w-full flex-col gap-1">
                   <span className="text-[13px] text-zinc-500">Category</span>
                   <Select
                     value={ticket.category ?? UNCATEGORIZED}
@@ -373,7 +376,7 @@ function TicketDetail() {
                   </Select>
                 </div>
 
-                <div className="flex w-1/2 flex-col gap-1">
+                <div className="flex w-full flex-col gap-1">
                   <span className="text-[13px] text-zinc-500">Assigned to</span>
                   <Select
                     value={ticket.assignedTo?.id ?? UNASSIGNED}
