@@ -164,6 +164,10 @@ router.delete("/users/:id", apiLimiter, requireAuth, requireAdmin, async (req, r
 
   await prisma.$transaction([
     prisma.session.deleteMany({ where: { userId: id } }),
+    prisma.ticket.updateMany({
+      where: { assignedToId: id },
+      data: { assignedToId: null },
+    }),
     prisma.user.update({
       where: { id },
       data: { deletedAt: new Date() },
