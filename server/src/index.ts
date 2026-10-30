@@ -43,8 +43,10 @@ app.use("/api", ticketsRouter);
 app.use("/api", router);
 app.use("/api/webhooks", webhooksRouter);
 
-if (!process.env.WEBHOOK_SECRET) {
-  console.warn("Warning: WEBHOOK_SECRET is not set. Webhook endpoints will return 500.");
+if (!process.env.WEBHOOK_SECRET && !process.env.MAILGUN_SIGNING_KEY) {
+  console.warn(
+    "Warning: neither WEBHOOK_SECRET nor MAILGUN_SIGNING_KEY is set. Inbound email webhooks will be rejected.",
+  );
 }
 
 app.use(errorHandler);

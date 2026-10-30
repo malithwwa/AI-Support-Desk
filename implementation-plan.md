@@ -45,7 +45,7 @@
 ## Phase 6: Email Integration
 
 - [ ] Set up email provider (SendGrid/Mailgun)
-- [ ] Implement inbound email webhook to create tickets
+- [x] Implement inbound email webhook to create tickets
 - [ ] Implement outbound email sending when an agent replies
 - [ ] Handle email threading (replies linked to existing tickets)
 

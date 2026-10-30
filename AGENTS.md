@@ -172,6 +172,13 @@ from the repo root; they forward into the workspaces.
   in `server/src/routes/users.ts`; `router` in `routes/index.ts` holds the
   example `/message` route. Shared `apiLimiter` (production-only rate limit)
   lives in `server/src/middleware/rate-limit.ts`.
+- Inbound email: `POST /api/webhooks/inbound-email` (`routes/webhooks.ts`)
+  accepts Mailgun/SendGrid webhook payloads (`multipart/form-data`) as well as
+  canonical JSON, normalizing them in `server/src/lib/inbound-email.ts`.
+  Provider setup is documented in `server/EMAIL.md`. Auth is Mailgun's HMAC
+  signature (`MAILGUN_SIGNING_KEY`) when present, otherwise the shared
+  `WEBHOOK_SECRET` via `x-webhook-secret` header or `?secret=`
+  (`middleware/require-webhook-auth.ts`). Attachments are discarded.
 - Auth: Better Auth (`better-auth`) — email/password, database sessions in
   PostgreSQL (via `prismaAdapter`), cookie-based. Server wires Better Auth's
   handler at `/api/auth/*splat` via `toNodeHandler` (`server/src/index.ts`);

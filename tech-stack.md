@@ -31,4 +31,4 @@
   - Mailgun free tier: 100 emails/day for first 3 months
   - OpenRouter free models: rate-limited, subject to availability
 - Database sessions mean session records live in Postgres; may need a cron cleanup job to purge expired sessions
-- Inbound email ingestion approach (IMAP polling vs. webhook) still pending
+- Inbound email ingestion uses provider webhooks (Mailgun routes / SendGrid Inbound Parse) normalized in `server/src/lib/inbound-email.ts`; see `server/EMAIL.md`

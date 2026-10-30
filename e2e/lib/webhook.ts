@@ -8,9 +8,9 @@ const envTestPath = path.join(serverDir, ".env.test");
 /**
  * The shared secret protecting POST /api/webhooks/inbound-email.
  *
- * `requireWebhookSecret` (server/src/middleware/require-webhook-secret.ts)
+ * `requireWebhookAuth` (server/src/middleware/require-webhook-auth.ts)
  * compares the `x-webhook-secret` header or `?secret=` query param against
- * `process.env.WEBHOOK_SECRET` with a plain `!==`, so specs must send exactly
+ * `process.env.WEBHOOK_SECRET` (timing-safe), so specs must send exactly
  * the value the API was started with. The API webServer gets the secret
  * injected explicitly in e2e/playwright.config.ts (rather than relying on
  * Bun's NODE_ENV=test .env.test auto-load) so the route never falls into the
