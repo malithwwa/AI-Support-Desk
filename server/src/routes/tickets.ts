@@ -7,6 +7,7 @@ import {
 } from "@helpdesk/core";
 import prisma from "../db.ts";
 import { Prisma } from "../generated/prisma/client.ts";
+import { AiNotConfiguredError, AiRequestError, polishReply } from "../lib/ai.ts";
 import { requireAuth } from "../middleware/require-auth.ts";
 import { requireAdmin } from "../middleware/require-admin.ts";
 import { apiLimiter } from "../middleware/rate-limit.ts";
@@ -135,6 +136,58 @@ router.get("/tickets/:id", apiLimiter, requireAuth, async (req, res) => {
 
   res.json({ ticket });
 });
+
+router.post(
+  "/tickets/:id/polish-reply",
+  apiLimiter,
+  requireAuth,
+  async (req, res) => {
+    const params = ticketIdParamSchema.safeParse(req.params);
+    if (!params.success) {
+      return res
+        .status(400)
+        .json({ error: params.error.issues[0]?.message ?? "Invalid ticket id" });
+    }
+
+    const body = createTicketReplySchema.safeParse(req.body);
+    if (!body.success) {
+      return res
+        .status(400)
+        .json({ error: body.error.issues[0]?.message ?? "Invalid reply" });
+    }
+
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: params.data.id },
+      select: { subject: true, body: true, senderName: true },
+    });
+    if (!ticket) {
+      return res.status(404).json({ error: "Ticket not found" });
+    }
+
+    try {
+      const polished = await polishReply({
+        subject: ticket.subject,
+        senderName: ticket.senderName,
+        ticketBody: ticket.body,
+        draft: body.data.body,
+      });
+
+      res.json({ body: polished });
+    } catch (error) {
+      if (error instanceof AiNotConfiguredError) {
+        return res.status(503).json({ error: error.message });
+      }
+
+      console.error("Failed to polish reply:", error);
+      return res.status(502).json({
+        error:
+          error instanceof AiRequestError
+            ? error.message
+            : "Failed to polish reply",
+      });
+    }
+  },
+);
 
 router.post(
   "/tickets/:id/replies",

@@ -4,7 +4,7 @@ import axios, { isAxiosError } from 'axios'
 import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useParams } from 'react-router'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -34,6 +34,15 @@ async function createReply(id: number, input: CreateTicketReplyInput) {
     { withCredentials: true },
   )
   return data.reply
+}
+
+async function polishReply(id: number, body: string) {
+  const { data } = await axios.post<{ body: string }>(
+    `/api/tickets/${id}/polish-reply`,
+    { body },
+    { withCredentials: true },
+  )
+  return data.body
 }
 
 function formatDateTime(value: string) {
@@ -81,6 +90,8 @@ function TicketDetailPage() {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<CreateTicketReplyInput>({
     resolver: zodResolver(createTicketReplySchema) as Resolver<CreateTicketReplyInput>,
@@ -89,10 +100,25 @@ function TicketDetailPage() {
     },
   })
 
+  const draftBody = watch('body')
+
+  const polishMutation = useMutation({
+    mutationFn: (body: string) => polishReply(ticketId, body),
+    onSuccess: (polished) => {
+      setValue('body', polished, { shouldValidate: true, shouldDirty: true })
+    },
+  })
+
   const replyError = replyMutation.isError
     ? isAxiosError(replyMutation.error)
       ? (replyMutation.error.response?.data?.error ?? 'Failed to post reply')
       : 'Failed to post reply'
+    : null
+
+  const polishError = polishMutation.isError
+    ? isAxiosError(polishMutation.error)
+      ? (polishMutation.error.response?.data?.error ?? 'Failed to polish reply')
+      : 'Failed to polish reply'
     : null
 
   const notFound =
@@ -182,8 +208,25 @@ function TicketDetailPage() {
                     {replyError && (
                       <p className="text-[13px] text-destructive">{replyError}</p>
                     )}
+                    {polishError && (
+                      <p className="text-[13px] text-destructive">{polishError}</p>
+                    )}
                   </div>
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => polishMutation.mutate(draftBody)}
+                      disabled={
+                        replyMutation.isPending ||
+                        polishMutation.isPending ||
+                        draftBody.trim().length === 0
+                      }
+                    >
+                      <Sparkles className="size-3.5" />
+                      {polishMutation.isPending ? 'Polishing…' : 'Polish'}
+                    </Button>
                     <Button type="submit" size="sm" disabled={replyMutation.isPending}>
                       {replyMutation.isPending ? 'Sending…' : 'Send reply'}
                     </Button>
