@@ -2,7 +2,7 @@ import { OpenRouter } from "@openrouter/sdk";
 
 const DEFAULT_MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free";
 
-const SYSTEM_PROMPT = `You improve replies written by customer support agents.
+const POLISH_SYSTEM_PROMPT = `You improve replies written by customer support agents.
 Rewrite the agent's draft reply so it is clear, professional, friendly, and concise.
 
 Rules:
@@ -13,15 +13,27 @@ Rules:
 - Address the customer by name when it is available.
 - Return only the improved reply, with no preamble, explanation, or surrounding quotation marks.`;
 
+const SUMMARY_SYSTEM_PROMPT = `You summarize customer support tickets for support agents.
+Summarize the original customer message together with the full conversation history.
+
+Rules:
+- Capture the main issue, key details, actions already taken, and the current status or next step when stated.
+- Preserve names, dates, order numbers, and other concrete facts exactly as written.
+- Do not invent information or speculate about unstated facts.
+- Keep the same language as the conversation.
+- Use plain text only: no markdown, headings, bullet symbols, or code fences.
+- Be concise: aim for 3-5 short sentences.
+- Return only the summary, with no preamble or explanation.`;
+
 export class AiNotConfiguredError extends Error {
   constructor() {
-    super("AI reply polishing is not configured. Set OPENROUTER_API_KEY on the server.");
+    super("AI features are not configured. Set OPENROUTER_API_KEY on the server.");
     this.name = "AiNotConfiguredError";
   }
 }
 
 export class AiRequestError extends Error {
-  constructor(message = "Failed to polish reply") {
+  constructor(message = "AI request failed") {
     super(message);
     this.name = "AiRequestError";
   }
@@ -45,6 +57,46 @@ function getClient() {
   return client;
 }
 
+interface ChatInput {
+  systemPrompt: string;
+  userPrompt: string;
+  temperature: number;
+  maxCompletionTokens: number;
+}
+
+async function sendChat({
+  systemPrompt,
+  userPrompt,
+  temperature,
+  maxCompletionTokens,
+}: ChatInput): Promise<string> {
+  const openRouter = getClient();
+  if (!openRouter) {
+    throw new AiNotConfiguredError();
+  }
+
+  const result = await openRouter.chat.send({
+    chatRequest: {
+      model: process.env.OPENROUTER_MODEL ?? DEFAULT_MODEL,
+      temperature,
+      maxCompletionTokens,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+    },
+  });
+
+  const content = result.choices[0]?.message.content;
+  const text = typeof content === "string" ? content.trim() : "";
+
+  if (!text) {
+    throw new AiRequestError("The AI model returned an empty response");
+  }
+
+  return text;
+}
+
 interface PolishReplyInput {
   subject: string;
   senderName: string;
@@ -58,21 +110,11 @@ export async function polishReply({
   ticketBody,
   draft,
 }: PolishReplyInput): Promise<string> {
-  const openRouter = getClient();
-  if (!openRouter) {
-    throw new AiNotConfiguredError();
-  }
-
-  const result = await openRouter.chat.send({
-    chatRequest: {
-      model: process.env.OPENROUTER_MODEL ?? DEFAULT_MODEL,
-      temperature: 0.4,
-      maxCompletionTokens: 1_500,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: `Ticket subject: ${subject}
+  return sendChat({
+    systemPrompt: POLISH_SYSTEM_PROMPT,
+    temperature: 0.4,
+    maxCompletionTokens: 1_500,
+    userPrompt: `Ticket subject: ${subject}
 Customer name: ${senderName}
 
 Customer message:
@@ -86,17 +128,61 @@ ${draft}
 """
 
 Improved reply:`,
-        },
-      ],
-    },
   });
+}
 
-  const content = result.choices[0]?.message.content;
-  const text = typeof content === "string" ? content.trim() : "";
+interface ConversationMessage {
+  senderType: string;
+  author: string;
+  sentAt: string;
+  body: string;
+}
 
-  if (!text) {
-    throw new AiRequestError("The AI model returned an empty reply");
-  }
+interface SummarizeTicketInput {
+  subject: string;
+  status: string;
+  category: string | null;
+  senderName: string;
+  senderEmail: string;
+  ticketBody: string;
+  messages: ConversationMessage[];
+}
 
-  return text;
+export async function summarizeTicket({
+  subject,
+  status,
+  category,
+  senderName,
+  senderEmail,
+  ticketBody,
+  messages,
+}: SummarizeTicketInput): Promise<string> {
+  const history = messages.length
+    ? messages
+        .map(
+          (message, index) =>
+            `${index + 1}. [${message.senderType}] ${message.author} (${message.sentAt}):\n${message.body}`,
+        )
+        .join("\n\n")
+    : "No replies yet.";
+
+  return sendChat({
+    systemPrompt: SUMMARY_SYSTEM_PROMPT,
+    temperature: 0.2,
+    maxCompletionTokens: 800,
+    userPrompt: `Ticket subject: ${subject}
+Status: ${status}
+Category: ${category ?? "Uncategorized"}
+Customer: ${senderName} <${senderEmail}>
+
+Original message:
+"""
+${ticketBody}
+"""
+
+Conversation history:
+${history}
+
+Summary:`,
+  });
 }

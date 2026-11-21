@@ -222,9 +222,10 @@ from the repo root; they forward into the workspaces.
   `bunx prisma ...` from `server/`. DATABASE_URL lives in `server/.env`.
   Always pass `--no-skills` to `prisma init` — agent skills dirs are unwanted
   (context7 is used for up-to-date Prisma docs instead).
-- AI: free models via OpenRouter (`@openrouter/sdk`; reply polishing in
-  `server/src/lib/ai.ts` using `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free`,
-  model overridable via `OPENROUTER_MODEL`, requires `OPENROUTER_API_KEY`)
+- AI: free models via OpenRouter (`@openrouter/sdk`; reply polishing and ticket
+  summarization in `server/src/lib/ai.ts` using
+  `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free`, model overridable via
+  `OPENROUTER_MODEL`, requires `OPENROUTER_API_KEY`)
 - Email: SendGrid or Mailgun free tier — planned
 
 <!-- context7 -->

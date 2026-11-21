@@ -7,7 +7,12 @@ import {
 } from "@helpdesk/core";
 import prisma from "../db.ts";
 import { Prisma } from "../generated/prisma/client.ts";
-import { AiNotConfiguredError, AiRequestError, polishReply } from "../lib/ai.ts";
+import {
+  AiNotConfiguredError,
+  AiRequestError,
+  polishReply,
+  summarizeTicket,
+} from "../lib/ai.ts";
 import { requireAuth } from "../middleware/require-auth.ts";
 import { requireAdmin } from "../middleware/require-admin.ts";
 import { apiLimiter } from "../middleware/rate-limit.ts";
@@ -136,6 +141,59 @@ router.get("/tickets/:id", apiLimiter, requireAuth, async (req, res) => {
 
   res.json({ ticket });
 });
+
+router.post(
+  "/tickets/:id/summarize",
+  apiLimiter,
+  requireAuth,
+  async (req, res) => {
+    const params = ticketIdParamSchema.safeParse(req.params);
+    if (!params.success) {
+      return res
+        .status(400)
+        .json({ error: params.error.issues[0]?.message ?? "Invalid ticket id" });
+    }
+
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: params.data.id },
+      include: ticketInclude,
+    });
+    if (!ticket) {
+      return res.status(404).json({ error: "Ticket not found" });
+    }
+
+    try {
+      const summary = await summarizeTicket({
+        subject: ticket.subject,
+        status: ticket.status,
+        category: ticket.category,
+        senderName: ticket.senderName,
+        senderEmail: ticket.senderEmail,
+        ticketBody: ticket.body,
+        messages: ticket.replies.map((reply) => ({
+          senderType: reply.senderType,
+          author: reply.user.name,
+          sentAt: reply.createdAt.toISOString(),
+          body: reply.body,
+        })),
+      });
+
+      res.json({ summary });
+    } catch (error) {
+      if (error instanceof AiNotConfiguredError) {
+        return res.status(503).json({ error: error.message });
+      }
+
+      console.error("Failed to summarize ticket:", error);
+      return res.status(502).json({
+        error:
+          error instanceof AiRequestError
+            ? error.message
+            : "Failed to summarize ticket",
+      });
+    }
+  },
+);
 
 router.post(
   "/tickets/:id/polish-reply",
