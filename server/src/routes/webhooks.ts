@@ -2,6 +2,7 @@ import { Router, type RequestHandler } from "express";
 import multer, { type StorageEngine } from "multer";
 import { inboundEmailSchema } from "@helpdesk/core";
 import { requireWebhookAuth } from "../middleware/require-webhook-auth.ts";
+import { classifyTicketInBackground } from "../lib/classify-ticket.ts";
 import { parseInboundEmail } from "../lib/inbound-email.ts";
 import { validate } from "../lib/validate.ts";
 import prisma from "../db.ts";
@@ -97,6 +98,9 @@ router.post("/inbound-email", parseMultipart, requireWebhookAuth, async (req, re
   });
 
   res.status(201).json({ ticket });
+
+  // Kick off classification after responding so the webhook stays fast.
+  classifyTicketInBackground(ticket);
 });
 
 export default router;

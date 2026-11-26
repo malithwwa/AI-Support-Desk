@@ -36,7 +36,7 @@
 ## Phase 5: AI Features
 
 - [ ] AI client module wrapping OpenRouter (model from env, e.g., a free model like `meta-llama/llama-3.1-8b-instruct:free`)
-- [ ] Implement auto-classification endpoint (categorize incoming tickets)
+- [x] Implement auto-classification of incoming tickets (non-blocking, on inbound email)
 - [ ] Implement AI summary endpoint (generate ticket summary)
 - [ ] Implement AI suggested reply endpoint
 - [ ] Build knowledge base structure and seed with initial content

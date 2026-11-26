@@ -1,4 +1,8 @@
 import { OpenRouter } from "@openrouter/sdk";
+import {
+  ticketCategorySchema,
+  type TicketCategory,
+} from "@helpdesk/core";
 
 const DEFAULT_MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free";
 
@@ -12,6 +16,18 @@ Rules:
 - Use plain text only: no markdown, headings, or code fences.
 - Address the customer by name when it is available.
 - Return only the improved reply, with no preamble, explanation, or surrounding quotation marks.`;
+
+const CLASSIFY_SYSTEM_PROMPT = `You classify customer support tickets into exactly one category.
+
+Categories:
+- GENERAL_QUESTION: general questions, account questions, how-to requests, or non-technical/non-refund topics.
+- TECHNICAL_QUESTION: bugs, errors, setup/configuration problems, or requests for technical help.
+- REFUND_REQUEST: requests for a refund, chargeback, cancellation with money back, or reimbursement.
+
+Rules:
+- Choose the single best category based on the ticket subject and message.
+- Do not invent facts or ask questions.
+- Reply with exactly one of these codes and nothing else: GENERAL_QUESTION, TECHNICAL_QUESTION, REFUND_REQUEST.`;
 
 const SUMMARY_SYSTEM_PROMPT = `You summarize customer support tickets for support agents.
 Summarize the original customer message together with the full conversation history.
@@ -185,4 +201,51 @@ ${history}
 
 Summary:`,
   });
+}
+
+interface ClassifyTicketInput {
+  subject: string;
+  body: string;
+  senderName: string;
+}
+
+export async function classifyTicket({
+  subject,
+  body,
+  senderName,
+}: ClassifyTicketInput): Promise<TicketCategory> {
+  const response = await sendChat({
+    systemPrompt: CLASSIFY_SYSTEM_PROMPT,
+    temperature: 0,
+    // Reasoning models spend part of this budget before emitting the answer.
+    maxCompletionTokens: 256,
+    userPrompt: `Ticket subject: ${subject}
+Customer name: ${senderName}
+
+Customer message:
+"""
+${body}
+"""
+
+Category code:`,
+  });
+
+  const parsed = ticketCategorySchema.safeParse(response.trim().toUpperCase());
+  if (parsed.success) {
+    return parsed.data;
+  }
+
+  // Some models add a short explanation around the code; accept it if present.
+  const code = response.match(
+    /GENERAL_QUESTION|TECHNICAL_QUESTION|REFUND_REQUEST/i,
+  )?.[0];
+  const fallback = code
+    ? ticketCategorySchema.safeParse(code.toUpperCase())
+    : null;
+
+  if (fallback?.success) {
+    return fallback.data;
+  }
+
+  throw new AiRequestError("The AI model returned an invalid ticket category");
 }
